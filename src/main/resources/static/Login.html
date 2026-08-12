@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In — The Pass</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+    <style>
+        :root {
+            --bg: #14100D;
+            --bg-elev: #1E1811;
+            --paper: #FAF4E6;
+            --ink: #241D14;
+            --ink-soft: #6B5F4B;
+            --text: #F2ECDD;
+            --text-muted: #AFA184;
+            --amber: #E8A33D;
+            --amber-dark: #C27F1E;
+            --amber-ink: #241804;
+            --green: #4C7A52;
+            --red: #B23A34;
+            --radius: 3px;
+            --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
+            --font-body: 'Work Sans', -apple-system, Segoe UI, sans-serif;
+            --font-mono: 'Space Mono', 'Courier New', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .auth-shell {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1.05fr 1fr;
+        }
+
+        .auth-brand {
+            background:
+                    radial-gradient(circle at 20% 15%,
+                    rgba(232,163,61,.14), transparent 45%),
+                    radial-gradient(circle at 80% 85%,
+                    rgba(76,122,82,.14), transparent 45%),
+                    var(--bg);
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .brand-mark {
+            font-family: var(--font-display);
+            font-size: 30px;
+            letter-spacing: .03em;
+            color: var(--amber);
+        }
+
+        .auth-hero {
+            font-family: var(--font-display);
+            font-size: clamp(48px, 7vw, 84px);
+            line-height: .96;
+            letter-spacing: .01em;
+            max-width: 560px;
+        }
+
+        .auth-hero em {
+            font-style: normal;
+            color: var(--amber);
+        }
+
+        .auth-tagline {
+            font-size: 15px;
+            color: var(--text-muted);
+            max-width: 380px;
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+
+        .auth-stub-row {
+            display: flex;
+            gap: 14px;
+            margin-top: 26px;
+            flex-wrap: wrap;
+        }
+
+        .stub {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            border: 1px dashed #3A2F22;
+            border-radius: 3px;
+            padding: 10px 12px;
+            transform: rotate(-1.5deg);
+        }
+
+        .stub b {
+            color: var(--amber);
+            display: block;
+            font-size: 15px;
+            font-family: var(--font-mono);
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .auth-panel {
+            background: var(--bg-elev);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .ticket {
+            background: var(--paper);
+            color: var(--ink);
+            border-radius: 2px 2px 0 0;
+            position: relative;
+            box-shadow: 0 14px 30px -12px rgba(0,0,0,.55);
+        }
+
+        .ticket-punch {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 1.5px dashed var(--ink-soft);
+            opacity: .35;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 380px;
+            padding: 34px 32px 30px;
+        }
+
+        .auth-card-title {
+            font-family: var(--font-display);
+            font-size: 30px;
+            letter-spacing: .01em;
+            margin-top: 4px;
+        }
+
+        .field {
+            margin-bottom: 15px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--ink-soft);
+        }
+
+        .field input {
+            width: 100%;
+            padding: 11px 12px;
+            border-radius: var(--radius);
+            border: 1px solid #D9CDAE;
+            background: #fff;
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: 14px;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: var(--amber);
+        }
+
+        .field-error {
+            font-size: 11.5px;
+            color: var(--red);
+            margin-top: 6px;
+            display: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px 20px;
+            border-radius: var(--radius);
+            border: 1px solid transparent;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--amber);
+            color: var(--amber-ink);
+        }
+
+        .btn-primary:hover {
+            background: #f0af4d;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .auth-foot {
+            margin-top: 18px;
+            font-size: 13px;
+            color: var(--ink-soft);
+            text-align: center;
+        }
+
+        .auth-foot a {
+            color: var(--amber-dark);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .auth-foot a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 980px) {
+            .auth-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-brand {
+                padding: 40px 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="auth-shell">
+
+    <div class="auth-brand">
+        <div><span class="brand-mark">HELL'S KITCHEN</span></div>
+        <div>
+            <div class="auth-hero">Order<br>ahead.<br><em>Skip the line.</em></div>
+            <p class="auth-tagline">Pre-order your food before you arrive. The kitchen sees it the second you send it.</p>
+            <div class="auth-stub-row">
+                <div class="stub"><b>04:30</b>avg. pickup wait</div>
+                <div class="stub"><b>24/7</b>order tracking</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="ticket auth-card">
+            <div class="ticket-punch"></div>
+            <span class="eyebrow">Welcome back</span>
+            <div class="auth-card-title">Sign In</div>
+
+            <form id="loginForm" novalidate style="margin-top: 20px;">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" autocomplete="username" required />
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" autocomplete="current-password" required />
+                </div>
+                <div class="field-error" id="loginError"></div>
+                <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign In</button>
+            </form>
+
+            <div class="auth-foot">
+                New here? <a href="signup.html">Create a customer account</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+
+    $("#loginForm").submit(function(event) {
+
+        event.preventDefault();
+
+        let username = $("#username").val().trim();
+        let password = $("#password").val().trim();
+
+        if (username === "" || password === "") {
+            alert("Username or Password cannot be empty!");
+            return;
+        }
+
+        let obj = JSON.stringify({
+            "userName": username,
+            "password": password,
+        });
+
+        $.ajax({
+            url:
+        })
+    });
+
+</script>
+
+</body>
+</html>
