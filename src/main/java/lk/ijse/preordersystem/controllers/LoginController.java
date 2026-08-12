@@ -31,6 +31,8 @@ public class LoginController {
         UserDataDTO userDataDTO = new UserDataDTO();
         userDataDTO.setUserId(userDetails.getUserId());
         userDataDTO.setToken(token);
+        userDataDTO.setUserRoles(userDetails.getUserRoles());
+
         return new CommonResponse(0, userDataDTO, "JWT Token");
     }
 

@@ -325,14 +325,17 @@
             data:obj,
 
             success:function(response){
+                console.log(JSON.stringify(response, null, 2));
                 console.log("Success! Full Response: ", response);
                 console.log("Token: ", response.body.token);
                 console.log("User ID: ", response.body.userId);
                 console.log("User Role: ", response.body.userRoles);
 
+                let role = response.body.userRoles;
+
                 localStorage.setItem("JWT", response.body.token);
                 localStorage.setItem("userId", response.body.userId);
-                localStorage.setItem("userRole", response.body.userRoles);
+                localStorage.setItem("userRole", role);
 
                 switch (role) {
                     case "ADMIN":
