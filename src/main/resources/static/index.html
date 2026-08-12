@@ -319,7 +319,7 @@
         });
 
         $.ajax({
-            url:"https://malindujayasinghe.github.io/Pre_Order_System/v1/login",
+            url:"http://localhost:8080/v1/login",
             type:"POST",
             contentType:"application/json",
             data:obj,
@@ -330,9 +330,11 @@
                 console.log("User ID: ", response.body.userId);
                 console.log("User Role: ", response.body.userRoles);
 
+                let role = response.body.userRoles;
+
                 localStorage.setItem("JWT", response.body.token);
                 localStorage.setItem("userId", response.body.userId);
-                localStorage.setItem("userRole", response.body.userRoles);
+                localStorage.setItem("userRole", role);
 
                 switch (role) {
                     case "ADMIN":
