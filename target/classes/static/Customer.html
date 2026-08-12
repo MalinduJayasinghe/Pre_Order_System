@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu — The Pass</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+  <style>
+    :root {
+      --bg: #14100D; --bg-elev: #1E1811; --bg-elev-2: #271F16; --line: #3A2F22;
+      --paper: #FAF4E6; --paper-dim: #F0E7CE; --ink: #241D14; --ink-soft: #6B5F4B;
+      --text: #F2ECDD; --text-muted: #AFA184;
+      --amber: #E8A33D; --amber-dark: #C27F1E; --amber-ink: #241804;
+      --green: #4C7A52; --green-light: #D9E6D6; --green-ink: #1D3320;
+      --slate-light: #DCE6EA; --slate-ink: #1C2E36;
+      --red: #B23A34; --red-light: #F3DAD8; --red-ink: #3B1512;
+      --radius: 3px; --shadow-lift: 0 14px 30px -12px rgba(0,0,0,.55);
+      --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
+      --font-body: 'Work Sans', -apple-system, Segoe UI, sans-serif;
+      --font-mono: 'Space Mono', 'Courier New', monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; }
+    button { font-family: inherit; }
+    .eyebrow { font-family: var(--font-mono); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; color: var(--text-muted); }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius); border: 1px solid transparent; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-primary { background: var(--amber); color: var(--amber-ink); }
+    .btn-primary:hover { background: #f0af4d; }
+    .btn-dark { background: var(--bg-elev-2); color: var(--text); border-color: var(--line); }
+    .btn-dark:hover { border-color: var(--amber); }
+    .btn-sm { padding: 7px 12px; font-size: 12.5px; }
+    .btn-block { width: 100%; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .ticket { background: var(--paper); color: var(--ink); border-radius: 2px 2px 0 0; box-shadow: var(--shadow-lift); position: relative; }
+
+    .stamp { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; padding: 5px 10px; border-radius: 3px; border: 1.5px solid currentColor; transform: rotate(-2deg); }
+    .stamp::before { content: "●"; font-size: 8px; }
+    .stamp-pending { color: var(--amber-dark); background: #FBEBCE; }
+    .stamp-preparing { color: var(--slate-ink); background: var(--slate-light); }
+    .stamp-ready { color: var(--green-ink); background: var(--green-light); }
+    .stamp-served { color: var(--ink-soft); background: #E7DEC7; }
+    .stamp-cancelled { color: var(--red-ink); background: var(--red-light); }
+
+    .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+    .sidebar { background: var(--bg-elev); border-right: 1px solid var(--line); padding: 22px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+    .brand { padding: 6px 8px 22px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+    .brand-mark { font-family: var(--font-display); font-size: 26px; letter-spacing: .03em; color: var(--amber); }
+    .nav-group-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); padding: 14px 10px 8px; }
+    .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: var(--radius); color: var(--text-muted); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; background: transparent; width: 100%; text-align: left; }
+    .nav-link .ico { width: 18px; text-align: center; opacity: .85; font-family: var(--font-mono); }
+    .nav-link:hover { color: var(--text); background: var(--bg-elev-2); }
+    .nav-link.active { color: var(--amber); background: var(--bg-elev-2); border-color: var(--line); }
+    .cart-count { margin-left: auto; background: var(--amber); color: var(--amber-ink); border-radius: 10px; font-size: 11px; padding: 1px 7px; display: none; }
+    .sidebar-foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 14px; }
+    .user-chip { display: flex; align-items: center; gap: 10px; padding: 8px; }
+    .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--amber); color: var(--amber-ink); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 15px; flex-shrink: 0; }
+    .user-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+    .user-role { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
+
+    .main { padding: 30px 38px 60px; max-width: 1280px; }
+    .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 26px; flex-wrap: wrap; gap: 14px; }
+    .page-title { font-family: var(--font-display); font-size: 34px; }
+    .page-sub { color: var(--text-muted); font-size: 13.5px; margin-top: 2px; }
+
+    .category-tabs { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+    .category-tab { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--bg-elev); color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .category-tab.active { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+    .food-card { padding: 0 0 16px; overflow: hidden; }
+    .food-card-media { height: 140px; display: flex; align-items: center; justify-content: center; background: var(--paper-dim); border-bottom: 1px solid #E4D8B8; overflow: hidden; }
+    .food-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .food-card-media .no-image { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-soft); text-align: center; }
+    .food-card-body { padding: 14px 16px 0; }
+    .food-card-name { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
+    .food-card-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.4; min-height: 32px; }
+    .food-card-foot { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 0; }
+    .food-card-price { font-family: var(--font-mono); font-weight: 700; font-size: 15px; }
+    .food-card-unavailable { font-family: var(--font-mono); font-size: 10.5px; color: var(--red-ink); text-transform: uppercase; }
+
+    .qty-stepper { display: inline-flex; align-items: center; border: 1px solid #D9CDAE; border-radius: var(--radius); overflow: hidden; }
+    .qty-stepper button { width: 28px; height: 28px; border: none; background: var(--paper-dim); color: var(--ink); font-size: 15px; cursor: pointer; }
+    .qty-stepper span { width: 26px; text-align: center; font-family: var(--font-mono); font-size: 13px; }
+
+    .cart-line { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E4D8B8; gap: 10px; }
+    .cart-line:last-child { border-bottom: none; }
+    .cart-line-name { font-weight: 600; font-size: 13.5px; }
+    .cart-line-price { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); }
+    .cart-total-row { display: flex; justify-content: space-between; padding-top: 14px; margin-top: 6px; border-top: 2px solid var(--ink); font-family: var(--font-mono); font-weight: 700; font-size: 16px; }
+
+    .field { margin-bottom: 15px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--ink-soft); }
+    .field input, .field select, .field textarea { width: 100%; padding: 11px 12px; border-radius: var(--radius); border: 1px solid #D9CDAE; background: #fff; color: var(--ink); font-family: var(--font-body); font-size: 14px; }
+    .field textarea { resize: vertical; min-height: 60px; }
+
+    .order-ticket { padding: 14px 16px 18px; }
+    .order-ticket-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .ticket-code { font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); }
+    .order-ticket-items { font-size: 12.5px; line-height: 1.6; margin: 10px 0; }
+    .order-ticket-items .qty { font-family: var(--font-mono); color: var(--ink-soft); margin-right: 4px; }
+    .order-ticket-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); font-family: var(--font-mono); }
+
+    .empty-state { text-align: center; padding: 46px 20px; color: var(--text-muted); }
+    .empty-state .glyph { font-size: 30px; margin-bottom: 10px; opacity: .6; font-family: var(--font-mono); }
+    .empty-state .lead { font-family: var(--font-display); font-size: 20px; color: var(--ink); margin-bottom: 4px; }
+    .loading-row { text-align: center; padding: 30px; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    #toastStack { position: fixed; bottom: 22px; right: 22px; display: flex; flex-direction: column; gap: 10px; z-index: 200; }
+    .toast { font-family: var(--font-mono); font-size: 13px; padding: 12px 16px; border-radius: var(--radius); background: var(--paper); color: var(--ink); border-left: 4px solid var(--amber); box-shadow: var(--shadow-lift); min-width: 220px; }
+    .toast.success { border-left-color: var(--green); }
+
+    @media (max-width: 980px) { .app { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; } }
+    @media (max-width: 600px) { .main { padding: 22px 16px 50px; } }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">THE PASS</span></div>
+
+    <div class="nav-group-label">Customer</div>
+    <button class="nav-link active" data-tab="menu"><span class="ico">01</span> Menu</button>
+    <button class="nav-link" data-tab="cart"><span class="ico">02</span> Cart &amp; Checkout <span class="cart-count" id="cartBadge">0</span></button>
+    <button class="nav-link" data-tab="orders"><span class="ico">03</span> My Orders</button>
+
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">C</div>
+        <div>
+          <div class="user-name" id="userName">—</div>
+          <div class="user-role" id="userRole">—</div>
+        </div>
+      </div>
+      <button class="btn btn-dark btn-block btn-sm" style="margin-top:10px;" id="logoutBtn">Log Out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <section class="tab-panel active" id="tab-menu">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Menu</div>
+          <div class="page-sub">Build your order — we'll have it ready for pickup.</div>
+        </div>
+      </div>
+      <div class="category-tabs" id="categoryTabs"><button class="category-tab active" data-category="ALL">All</button></div>
+      <div class="menu-grid" id="menuGrid"><div class="loading-row">Loading menu…</div></div>
+    </section>
+
+    <section class="tab-panel" id="tab-cart">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Cart &amp; Checkout</div>
+          <div class="page-sub">Review your order before sending it to the kitchen.</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:20px; align-items:start;">
+        <div class="ticket" style="padding: 18px 20px 22px;" id="cartLines">
+          <div class="empty-state"><div class="glyph">--</div><div class="lead">Your cart is empty</div><p>Add something from the menu to get started.</p></div>
+        </div>
+
+        <div class="ticket" style="padding: 18px 20px 22px;">
+          <div class="eyebrow" style="margin-bottom:10px;">Order Details</div>
+          <div class="field">
+            <label for="pickupTime">Pickup time</label>
+            <select id="pickupTime">
+              <option>ASAP (~15 min)</option><option>20 min</option><option>30 min</option><option>45 min</option><option>1 hour</option><option>Choose a time...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="orderNotes">Special instructions (optional)</label>
+            <textarea id="orderNotes" placeholder="Allergies, substitutions, anything the kitchen should know…"></textarea>
+          </div>
+          <div class="cart-total-row"><span>Total</span><span id="cartTotal">Rs.0.00</span></div>
+          <button class="btn btn-primary btn-block" id="placeOrderBtn" style="margin-top:16px;" disabled>Place Order</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-orders">
+      <div class="topbar">
+        <div>
+          <div class="page-title">My Orders</div>
+          <div class="page-sub">Track pre-orders in progress and past pickups.</div>
+        </div>
+      </div>
+      <div id="myOrdersList"><div class="loading-row">Loading…</div></div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toastStack"></div>
+
+<script src="db.js"></script>
+<script>
+  /* ---------------------------- session guard ---------------------------- */
+
+  document.querySelectorAll(".nav-link[data-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-link[data-tab]").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      if (btn.dataset.tab === "orders") loadMyOrders();
+    });
+  });
+
+  let menuItems = [];
+  let activeCategory = "ALL";
+  const cart = new Map(); // itemId -> { item, qty }
+
+  /* ============================ MENU ============================ */
+  // TODO: once MenuController is implemented, replace DB.getMenu() with:
+  //   fetch(API_BASE_URL + "/v1/menu", { headers: authHeaders() })
+  function loadMenu() {
+    menuItems = DB.getMenu();
+    buildCategoryTabs();
+    renderMenu();
+  }
+
+  function buildCategoryTabs() {
+    const categories = ["ALL", ...new Set(menuItems.map(i => i.category))];
+    document.getElementById("categoryTabs").innerHTML = categories.map(c =>
+            `<button class="category-tab ${c === "ALL" ? "active" : ""}" data-category="${c}">${c === "ALL" ? "All" : c}</button>`).join("");
+  }
+  document.getElementById("categoryTabs").addEventListener("click", e => {
+    const btn = e.target.closest("[data-category]");
+    if (!btn) return;
+    document.querySelectorAll("#categoryTabs .category-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeCategory = btn.dataset.category;
+    renderMenu();
+  });
+
+  function renderMenu() {
+    const grid = document.getElementById("menuGrid");
+    const list = activeCategory === "ALL" ? menuItems : menuItems.filter(i => i.category === activeCategory);
+    if (!list.length) { grid.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">Nothing here</div></div>'; return; }
+    grid.innerHTML = list.map(item => {
+      const inCart = cart.get(item.itemId);
+      const qty = inCart ? inCart.qty : 0;
+      const media = item.imageUrl
+              ? `<img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" />`
+              : `<span class="no-image">No photo yet</span>`;
+      return `
+        <div class="ticket food-card">
+          <div class="food-card-media">${media}</div>
+          <div class="food-card-body">
+            <div class="food-card-name">${esc(item.name)}</div>
+            <div class="food-card-desc">${esc(item.description || "")}</div>
+          </div>
+          <div class="food-card-foot">
+            <span class="food-card-price">${money(item.price)}</span>
+            ${item.available
+              ? (qty > 0
+                      ? `<div class="qty-stepper"><button data-decr="${item.itemId}">−</button><span>${qty}</span><button data-incr="${item.itemId}">+</button></div>`
+                      : `<button class="btn btn-dark btn-sm" data-incr="${item.itemId}">Add</button>`)
+              : `<span class="food-card-unavailable">Unavailable</span>`}
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  document.getElementById("menuGrid").addEventListener("click", e => {
+    const incrId = e.target.closest("[data-incr]")?.dataset.incr;
+    const decrId = e.target.closest("[data-decr]")?.dataset.decr;
+    if (incrId) addToCart(Number(incrId));
+    if (decrId) removeFromCart(Number(decrId));
+  });
+
+  function addToCart(itemId) {
+    const item = menuItems.find(i => i.itemId === itemId);
+    if (!item) return;
+    const existing = cart.get(itemId);
+    cart.set(itemId, { item, qty: (existing?.qty || 0) + 1 });
+    renderMenu(); renderCart();
+    toast(`Added ${item.name}`, "success");
+  }
+  function removeFromCart(itemId) {
+    const existing = cart.get(itemId);
+    if (!existing) return;
+    if (existing.qty <= 1) cart.delete(itemId);
+    else cart.set(itemId, { item: existing.item, qty: existing.qty - 1 });
+    renderMenu(); renderCart();
+  }
+
+  /* ============================ CART ============================ */
+  function cartTotal() { let t = 0; cart.forEach(({ item, qty }) => t += item.price * qty); return t; }
+  function cartCount() { let n = 0; cart.forEach(({ qty }) => n += qty); return n; }
+
+  function renderCart() {
+    const badge = document.getElementById("cartBadge");
+    const count = cartCount();
+    badge.style.display = count > 0 ? "inline-block" : "none";
+    badge.textContent = count;
+
+    const linesEl = document.getElementById("cartLines");
+    const placeBtn = document.getElementById("placeOrderBtn");
+
+    if (cart.size === 0) {
+      linesEl.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">Your cart is empty</div><p>Add something from the menu to get started.</p></div>';
+      placeBtn.disabled = true;
+    } else {
+      linesEl.innerHTML = Array.from(cart.values()).map(({ item, qty }) => `
+        <div class="cart-line">
+          <div>
+            <div class="cart-line-name">${qty}× ${esc(item.name)}</div>
+            <div class="cart-line-price">${money(item.price)} each</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span style="font-family: var(--font-mono); font-size:12.5px;">${money(item.price * qty)}</span>
+            <div class="qty-stepper"><button data-decr="${item.itemId}">−</button><span>${qty}</span><button data-incr="${item.itemId}">+</button></div>
+          </div>
+        </div>`).join("");
+      placeBtn.disabled = false;
+    }
+    document.getElementById("cartTotal").textContent = money(cartTotal());
+  }
+
+  document.getElementById("cartLines").addEventListener("click", e => {
+    const incrId = e.target.closest("[data-incr]")?.dataset.incr;
+    const decrId = e.target.closest("[data-decr]")?.dataset.decr;
+    if (incrId) addToCart(Number(incrId));
+    if (decrId) removeFromCart(Number(decrId));
+  });
+
+  // TODO: once OrderController is implemented, replace DB.createOrder() with:
+  //   fetch(API_BASE_URL + "/v1/order", { method: "POST", headers: authHeaders(), body: JSON.stringify(payload) })
+  document.getElementById("placeOrderBtn").addEventListener("click", () => {
+    if (cart.size === 0) return;
+    const payload = {
+      customerId: sessionUser.userId,
+      customerName: sessionUser.username,
+      items: Array.from(cart.values()).map(({ item, qty }) => ({ menuItemId: item.itemId, name: item.name, price: item.price, qty })),
+      pickupTime: document.getElementById("pickupTime").value,
+      notes: document.getElementById("orderNotes").value.trim()
+    };
+    const order = DB.createOrder(payload);
+    toast(`Order ${orderCode(order.orderId)} sent to the kitchen`, "success");
+    cart.clear();
+    document.getElementById("orderNotes").value = "";
+    renderMenu(); renderCart();
+    document.querySelector('.nav-link[data-tab="orders"]').click();
+  });
+
+  /* ============================ MY ORDERS ============================ */
+  // TODO: once OrderController is implemented, replace DB.getOrdersForCustomer()
+  // with: fetch(API_BASE_URL + "/v1/order/customer/" + sessionUser.userId, { headers: authHeaders() })
+  function loadMyOrders() {
+    const el = document.getElementById("myOrdersList");
+    const orders = DB.getOrdersForCustomer(sessionUser.userId);
+    if (!orders.length) {
+      el.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">No orders yet</div><p>Place your first pre-order from the Menu tab.</p></div>';
+      return;
+    }
+    el.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:16px;">` +
+            orders.map(o => `
+        <div class="ticket order-ticket">
+          <div class="order-ticket-head">
+            <div><div class="ticket-code">${orderCode(o.orderId)}</div><span style="font-size:11px; color:var(--ink-soft);">${fmtDate(o.placedAt)}</span></div>
+            <span class="stamp stamp-${o.status.toLowerCase()}">${o.status}</span>
+          </div>
+          <div class="order-ticket-items">${o.items.map(i => `<div><span class="qty">${i.qty}×</span>${esc(i.name)}</div>`).join("")}</div>
+          <div class="order-ticket-meta"><span>Pickup ${esc(o.pickupTime)}</span><span>${money(o.total)}</span></div>
+        </div>`).join("") + `</div>`;
+  }
+
+  loadMenu();
+</script>
+</body>
+</html>

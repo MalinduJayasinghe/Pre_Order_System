@@ -7,7 +7,7 @@ import java.util.List;
 public interface UserService {
 
 
-    UserDTO getUserDetails(String username, String password);
+    UserDTO getUserDetails(String username, String password, String userRoles);
 
     void saveUser(UserDTO userDTO);
 

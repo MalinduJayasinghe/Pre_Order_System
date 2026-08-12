@@ -19,7 +19,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDTO getUserDetails(String username, String password) {
+    public UserDTO getUserDetails(String username, String password, String userRoles) {
 
         log.info("Execute method getUserDetails");
 

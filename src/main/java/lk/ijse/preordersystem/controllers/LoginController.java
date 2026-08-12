@@ -24,7 +24,7 @@ public class LoginController {
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse authLogin(@RequestBody AuthDTO authDTO){
 
-        UserDTO userDetails = userService.getUserDetails(authDTO.getUserName(), authDTO.getPassword());
+        UserDTO userDetails = userService.getUserDetails(authDTO.getUserName(), authDTO.getPassword(), authDTO.getUserRoles());
         log.info("authLogin API was called");
         String token = jwtUtil.generateToken(userDetails);
 
