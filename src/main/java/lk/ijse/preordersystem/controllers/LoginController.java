@@ -36,4 +36,11 @@ public class LoginController {
         return new CommonResponse(0, userDataDTO, "JWT Token");
     }
 
+    @PostMapping(value = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse saveCustomer(@RequestBody UserDTO userDTO){
+
+        userService.saveUser(userDTO);
+        return new CommonResponse(0, userDTO, "Customer saved successfully");
+    }
+
 }
