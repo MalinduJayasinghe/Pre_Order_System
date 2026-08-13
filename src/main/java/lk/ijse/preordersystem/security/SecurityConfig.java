@@ -35,7 +35,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/v1/login/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/v1/user/all").hasRole("ADMIN")
+                        .requestMatchers("/images/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/menu/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/menu/**", "/v1/menu/*/image").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/v1/menu/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/menu/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
