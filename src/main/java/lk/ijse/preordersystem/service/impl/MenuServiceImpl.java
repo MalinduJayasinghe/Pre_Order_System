@@ -157,11 +157,11 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public void deleteMenuItem(MenuItemDTO menuItemDTO) {
+    public void deleteMenuItem(Long itemId) {
 
         log.info("Execute method deleteMenuItem");
         try {
-            menuItemRepository.deleteById(menuItemDTO.getItemId());
+            menuItemRepository.deleteById(itemId);
             log.info("MenuItem deleted successfully");
 
         }catch (Exception e){
