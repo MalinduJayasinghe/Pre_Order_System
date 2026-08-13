@@ -379,8 +379,14 @@
 
 <div id="toastStack"></div>
 
-<script src="db.js"></script>
 <script>
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("JWT");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
+    window.location.href = "index.html";
+  });
 
   function openModal(id) { document.getElementById(id).classList.add("open"); }
   function closeModal(id) { document.getElementById(id).classList.remove("open"); }
