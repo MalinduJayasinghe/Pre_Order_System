@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface MenuRepository extends JpaRepository<MenuItem, Long> {
+public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
     @Query("SELECT m FROM MenuItem m WHERE m.itemId NOT IN (" +
             "SELECT mi.itemId FROM MenuItem mi JOIN mi.ingredients i WHERE i.ingredientName IN :excludedIngredients)")

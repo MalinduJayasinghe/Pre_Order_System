@@ -33,13 +33,17 @@ public class LoginController {
         userDataDTO.setToken(token);
         userDataDTO.setUserRoles(userDetails.getUserRoles());
 
+        log.info("authLogin API successful");
         return new CommonResponse(0, userDataDTO, "JWT Token");
     }
 
     @PostMapping(value = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse saveCustomer(@RequestBody UserDTO userDTO){
 
+        log.info("saveCustomer API was called");
         userService.saveUser(userDTO);
+
+        log.info("saveCustomer API successful");
         return new CommonResponse(0, userDTO, "Customer saved successfully");
     }
 
