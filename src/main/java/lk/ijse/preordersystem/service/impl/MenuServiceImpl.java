@@ -112,20 +112,20 @@ public class MenuServiceImpl implements MenuService {
         try {
 
             MenuItem menuItem = new MenuItem();
-            menuItemDTO.setItemId(menuItem.getItemId());
-            menuItemDTO.setName(menuItem.getName());
-            menuItemDTO.setCategory(menuItem.getCategory());
-            menuItemDTO.setPrice(menuItem.getPrice());
-            menuItemDTO.setAvailable(menuItem.isAvailable());
-            menuItemDTO.setImageFileName(menuItem.getImageFileName());
-            menuItemDTO.setIngredients(menuItem.getIngredients());
+            menuItem.setName(menuItemDTO.getName());
+            menuItem.setCategory(menuItemDTO.getCategory());
+            menuItem.setPrice(menuItemDTO.getPrice());
+            menuItem.setAvailable(menuItemDTO.isAvailable());
+            menuItem.setImageFileName(menuItemDTO.getImageFileName());
+            menuItem.setIngredients(menuItemDTO.getIngredients());
+            menuItemRepository.save(menuItem);
 
             menuItemRepository.save(menuItem);
             log.info("MenuItem saved successfully");
 
         }catch (Exception e){
-
             log.info("Error in method saveMenuItem" + e.getMessage());
+            throw e;
         }
     }
 
@@ -166,6 +166,7 @@ public class MenuServiceImpl implements MenuService {
 
         }catch (Exception e){
             log.info("Error in method deleteMenuItem" + e.getMessage());
+            throw e;
         }
     }
 
