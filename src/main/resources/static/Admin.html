@@ -1160,17 +1160,96 @@
     renderIngredientTags();
   });
 
+  function addIngredientEntries(rawValue) {
+
+    let parts = rawValue.split(",");
+
+    for (let i = 0; i < parts.length; i++) {
+
+      let val = parts[i].trim().toLowerCase();
+
+      if (val !== "" && currentIngredients.indexOf(val) === -1) {
+        currentIngredients.push(val);
+      }
+    }
+
+    renderIngredientTags();
+  }
+
+  function addIngredientEntries(rawValue) {
+
+    let parts = rawValue.split(",");
+
+    for (let i = 0; i < parts.length; i++) {
+
+      let val = parts[i].trim().toLowerCase();
+
+      if (val !== "" && currentIngredients.indexOf(val) === -1) {
+        currentIngredients.push(val);
+      }
+    }
+
+    renderIngredientTags();
+  }
+
+  function addIngredientEntries(rawValue) {
+
+    let parts = rawValue.split(",");
+
+    for (let i = 0; i < parts.length; i++) {
+
+      let val = parts[i].trim().toLowerCase();
+
+      if (val !== "" && currentIngredients.indexOf(val) === -1) {
+        currentIngredients.push(val);
+      }
+    }
+
+    renderIngredientTags();
+  }
+
+  function addIngredientEntries(rawValue) {
+
+    let parts = rawValue.split(",");
+
+    for (let i = 0; i < parts.length; i++) {
+
+      let val = parts[i].trim().toLowerCase();
+
+      if (val !== "" && currentIngredients.indexOf(val) === -1) {
+        currentIngredients.push(val);
+      }
+    }
+
+    renderIngredientTags();
+  }
+
+  function addIngredientEntries(rawValue) {
+
+    let parts = rawValue.split(",");
+
+    for (let i = 0; i < parts.length; i++) {
+
+      let val = parts[i].trim().toLowerCase();
+
+      if (val !== "" && currentIngredients.indexOf(val) === -1) {
+        currentIngredients.push(val);
+      }
+    }
+
+    renderIngredientTags();
+  }
+
   $("#menuIngredientInput").keydown(function (event) {
 
     if (event.key === "Enter") {
 
       event.preventDefault();
 
-      let val = $(this).val().trim().toLowerCase();
+      let rawValue = $(this).val();
 
-      if (val !== "" && currentIngredients.indexOf(val) === -1) {
-        currentIngredients.push(val);
-        renderIngredientTags();
+      if (rawValue.trim() !== "") {
+        addIngredientEntries(rawValue);
       }
 
       $(this).val("");
