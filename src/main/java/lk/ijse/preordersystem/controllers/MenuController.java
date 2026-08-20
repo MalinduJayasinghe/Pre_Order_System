@@ -21,10 +21,10 @@ public class MenuController {
     private final MenuService menuService;
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse getAllMenuItems(@RequestBody MenuItemDTO menuItemDTO) {
+    public CommonResponse getAllMenuItems() {
 
         log.info("getAllMenuItems API was called");
-        List<MenuItemDTO> allMenuItems = menuService.getAllMenuItems(menuItemDTO);
+        List<MenuItemDTO> allMenuItems = menuService.getAllMenuItems();
 
         log.info("getAllMenuItems API successful");
         return new CommonResponse(0, allMenuItems, "MenuItems called");
