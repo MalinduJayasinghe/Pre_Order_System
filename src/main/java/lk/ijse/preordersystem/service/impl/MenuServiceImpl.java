@@ -17,8 +17,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -32,7 +34,7 @@ public class MenuServiceImpl implements MenuService {
     private static final String UPLOAD_DIR = "uploads/menu-images";
 
     @Override
-    public List<MenuItemDTO> getAllMenuItems(MenuItemDTO menuItemDTO) {
+    public List<MenuItemDTO> getAllMenuItems() {
 
         try {
             log.info("Execute method getAllMenuItems");
@@ -41,14 +43,14 @@ public class MenuServiceImpl implements MenuService {
 
             for (MenuItem menuItem : menuItemsList) {
 
-                menuItemDTO = new MenuItemDTO();
+                MenuItemDTO menuItemDTO = new MenuItemDTO();
                 menuItemDTO.setItemId(menuItem.getItemId());
                 menuItemDTO.setName(menuItem.getName());
                 menuItemDTO.setCategory(menuItem.getCategory());
                 menuItemDTO.setPrice(menuItem.getPrice());
                 menuItemDTO.setAvailable(menuItem.isAvailable());
                 menuItemDTO.setImageFileName(menuItem.getImageFileName());
-                menuItemDTO.setIngredients(menuItem.getIngredients());
+                menuItemDTO.setIngredients(mapIngredientsToNames(menuItem.getIngredients()));
 
                 responseList.add(menuItemDTO);
             }
@@ -69,7 +71,7 @@ public class MenuServiceImpl implements MenuService {
         try {
 
             if(excludingIngredients==null || excludingIngredients.isEmpty()){
-                return getAllMenuItems(new MenuItemDTO());
+                return getAllMenuItems();
             }
 
             List<String> excludeIngredients = new ArrayList<>();
@@ -90,7 +92,7 @@ public class MenuServiceImpl implements MenuService {
                 menuItemDTO.setPrice(menuItem.getPrice());
                 menuItemDTO.setAvailable(menuItem.isAvailable());
                 menuItemDTO.setImageFileName(menuItem.getImageFileName());
-                menuItemDTO.setIngredients(menuItem.getIngredients());
+                menuItemDTO.setIngredients(mapIngredientsToNames(menuItem.getIngredients()));
 
                 responseList.add(menuItemDTO);
             }
@@ -117,9 +119,9 @@ public class MenuServiceImpl implements MenuService {
             menuItem.setPrice(menuItemDTO.getPrice());
             menuItem.setAvailable(menuItemDTO.isAvailable());
             menuItem.setImageFileName(menuItemDTO.getImageFileName());
-            menuItem.setIngredients(menuItemDTO.getIngredients());
-            
+            menuItem.setIngredients(resolveIngredients(menuItemDTO.getIngredients()));
             menuItemRepository.save(menuItem);
+
             log.info("MenuItem saved successfully");
 
         }catch (Exception e){
@@ -146,7 +148,7 @@ public class MenuServiceImpl implements MenuService {
             menuItem.setPrice(menuItemDTO.getPrice());
             menuItem.setAvailable(menuItemDTO.isAvailable());
             menuItem.setImageFileName(menuItemDTO.getImageFileName());
-            menuItem.setIngredients(menuItemDTO.getIngredients());
+            menuItem.setIngredients(resolveIngredients(menuItemDTO.getIngredients()));
             menuItemRepository.save(menuItem);
             log.info("MenuItem updated successfully");
 
@@ -197,5 +199,64 @@ public class MenuServiceImpl implements MenuService {
             log.info("Error in method saveMenuItemImage" + e.getMessage());
             throw e;
         }
+    }
+
+    private Set<Ingredient> resolveIngredients(List<String> ingredientEntries) {
+
+        log.info("Execute method resolveIngredients");
+
+        Set<Ingredient> ingredients = new HashSet<>();
+
+        if (ingredientEntries == null || ingredientEntries.isEmpty()) {
+            return ingredients;
+        }
+
+        List<String> ingredientNames = new ArrayList<>();
+        for (String entry : ingredientEntries) {
+
+            if (entry == null) {
+                continue;
+            }
+
+            String[] splitEntry = entry.split(",");
+            for (String namePart : splitEntry) {
+
+                String ingredientName = namePart.trim().toLowerCase();
+                if (!ingredientName.isEmpty() && !ingredientNames.contains(ingredientName)) {
+                    ingredientNames.add(ingredientName);
+                }
+            }
+        }
+
+        for (String ingredientName : ingredientNames) {
+
+            Optional<Ingredient> existingIngredient = ingredientRepository.findByIngredientName(ingredientName);
+
+            if (existingIngredient.isPresent()) {
+                ingredients.add(existingIngredient.get());
+            } else {
+
+                Ingredient newIngredient = new Ingredient();
+                newIngredient.setIngredientName(ingredientName);
+                ingredients.add(newIngredient);
+            }
+        }
+
+        return ingredients;
+    }
+
+    private List<String> mapIngredientsToNames(Set<Ingredient> ingredients) {
+
+        List<String> ingredientNames = new ArrayList<>();
+
+        if (ingredients == null || ingredients.isEmpty()) {
+            return ingredientNames;
+        }
+
+        for (Ingredient ingredient : ingredients) {
+            ingredientNames.add(ingredient.getIngredientName());
+        }
+
+        return ingredientNames;
     }
 }
