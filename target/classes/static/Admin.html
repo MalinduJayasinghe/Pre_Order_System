@@ -899,291 +899,302 @@
 
 <div id="toastStack"></div>
 
-<script src="db.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
+
+  let menuItemList = [];
+  let currentIngredients = [];
 
   const MENU_CATEGORIES = ["Starters", "Mains", "Sides", "Desserts", "Drinks"];
 
-  async function loadMenu() {
-    const res = await fetch(API_BASE_URL + "/v1/menu", { headers: authHeaders() });
-    const items = (await res.json()).body;
-
-    const wrap = document.getElementById("menuByCategoryWrap");
-    wrap.innerHTML = MENU_CATEGORIES.map(category => {
-      const categoryItems = items.filter(i => i.category === category);
-      return `
-      <div class="panel" style="margin-bottom:20px;">
-        <div class="panel-head"><span class="panel-title">${esc(category)}</span></div>
-        <div class="panel-body table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Item</th><th>Ingredients</th><th>Price</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              ${categoryItems.length ? categoryItems.map(item => `
-                <tr>
-                  <td>
-                    <img class="thumb" src="${item.imageFileName ? API_BASE_URL + '/images/' + item.imageFileName : 'https://placehold.co/80x80?text=%20'}" alt="" />
-                    <strong>${esc(item.name)}</strong>
-                  </td>
-                  <td class="cell-muted">${item.ingredients?.length ? esc(item.ingredients.join(", ")) : "—"}</td>
-                  <td class="cell-mono">${money(item.price)}</td>
-                  <td>${item.available ? '<span class="stamp stamp-ready">Available</span>' : '<span class="stamp stamp-cancelled">86\'d</span>'}</td>
-                  <td class="cell-actions">
-                    <button class="icon-btn" data-edit-menu="${item.itemId}" title="Edit">✎</button>
-                    <button class="icon-btn" data-delete-menu="${item.itemId}" title="Delete">🗑</button>
-                  </td>
-                </tr>`).join("") : `<tr><td colspan="5" class="empty-state">No items in ${esc(category)} yet</td></tr>`}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
-    }).join("");
+  function openModal(id) { // modal helper
+    $("#" + id).addClass("open");
   }
 
-  document.getElementById("menuByCategoryWrap").addEventListener("click", e => {
-    const editId = e.target.closest("[data-edit-menu]")?.dataset.editMenu;
-    const delId = e.target.closest("[data-delete-menu]")?.dataset.deleteMenu;
-    if (editId) {
-      fetch(API_BASE_URL + "/v1/menu", { headers: authHeaders() })
-              .then(r => r.json())
-              .then(j => openMenuModal(j.body.find(m => String(m.itemId) === editId)));
+  function closeModal(id) {
+    $("#" + id).removeClass("open");
+  }
+
+  function loadMenu() {
+
+    $.ajax({
+      url: "http://localhost:8080/v1/menu",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        menuItemList = response.body;
+        renderMenu();
+      },
+
+      error: function (response) {
+        console.error("Failed to load menu:", response);
+        alert("Could not load the menu. Please try again.");
+      }
+    });
+  }
+
+  function renderMenu() {
+
+    let wrap = $("#menuByCategoryWrap");
+    let html = "";
+
+    for (let i = 0; i < MENU_CATEGORIES.length; i++) {
+
+      let category = MENU_CATEGORIES[i];
+      let categoryItems = [];
+
+      for (let j = 0; j < menuItemList.length; j++) {
+        if (menuItemList[j].category === category) {
+          categoryItems.push(menuItemList[j]);
+        }
+      }
+
+      html += "<div class='panel' style='margin-bottom:20px;'>";
+      html += "<div class='panel-head'><span class='panel-title'>" + esc(category) + "</span></div>";
+      html += "<div class='panel-body table-wrap'>";
+      html += "<table class='data-table'>";
+      html += "<thead>" +
+              "<tr>" +
+              "<th>Item</th>" +
+              "<th>Ingredients</th>" +
+              "<th>Price</th>" +
+              "<th>Status</th>" +
+              "<th></th>" +
+              "</tr>" +
+              "</thead>";
+      html += "<tbody>";
+
+      if (categoryItems.length === 0) {
+        html += "<tr><td colspan='5' class='empty-state'>No items in " + esc(category) + " yet</td></tr>";
+      } else {
+
+        for (let k = 0; k < categoryItems.length; k++) {
+
+          let item = categoryItems[k];
+          let imageSrc = item.imageFileName ? "http://localhost:8080/v1/menu" + "/image/" + item.imageFileName : "https://placehold.co/80x80?text=%20";
+          let ingredientsText = (item.ingredients && item.ingredients.length) ? esc(item.ingredients.join(", ")) : "—";
+          let statusBadge = item.available ? "<span class='stamp stamp-ready'>Available</span>" : "<span class='stamp stamp-cancelled'>Not Available</span>";
+
+          html += "<tr>";
+          html += "<td><img class='thumb' src='" + imageSrc + "' alt='' /><strong>" + esc(item.name) + "</strong></td>";
+          html += "<td class='cell-muted'>" + ingredientsText + "</td>";
+          html += "<td class='cell-mono'>" + money(item.price) + "</td>";
+          html += "<td>" + statusBadge + "</td>";
+          html += "<td class='cell-actions'>";
+          html += "<button class='icon-btn' data-edit-menu='" + item.itemId + "' title='Edit'>✎</button>";
+          html += "<button class='icon-btn' data-delete-menu='" + item.itemId + "' title='Delete'>🗑</button>";
+          html += "</td>";
+          html += "</tr>";
+        }
+      }
+
+      html += "</tbody></table></div></div>";
     }
-    if (delId) {
-      if (!confirm("Remove this item from the menu?")) return;
-      fetch(`${API_BASE_URL}/v1/menu/${delId}`, { method: "DELETE", headers: authHeaders() })
-              .then(() => { toast("Menu item removed", "success"); loadMenu(); });
+
+    wrap.html(html);
+  }
+
+  function renderIngredientTags() {
+
+    let wrap = $("#menuIngredientTags");
+    let html = "";
+
+    for (let i = 0; i < currentIngredients.length; i++) {
+      html += "<span class='stamp stamp-pending' style='cursor:pointer;' data-remove-ingredient='" + i + "'>";
+      html += esc(currentIngredients[i]) + " ✕";
+      html += "</span>";
+    }
+
+    wrap.html(html);
+  }
+
+  function openMenuModal(item) {
+
+    $("#menuModalTitle").text(item ? "Edit Menu Item" : "Add Menu Item");
+    $("#menuId").val(item ? item.itemId : "");
+    $("#menuName").val(item ? item.name : "");
+    $("#menuCategory").val(item ? item.category : "Starters");
+    $("#menuPrice").val(item ? item.price : "");
+    $("#menuAvailable").prop("checked", item ? item.available : true);
+    $("#menuImageFile").val("");
+
+    currentIngredients = (item && item.ingredients) ? item.ingredients.slice() : [];
+    renderIngredientTags();
+
+    openModal("menuModal");
+  }
+
+  function uploadMenuItemImage(itemId, file) {
+
+    let formData = new FormData();
+    formData.append("file", file);
+
+    $.ajax({
+      url: "http://localhost:8080/v1/menu/" + itemId + "/image",
+      type: "POST",
+      headers: authHeaders(),
+      data: formData,
+      processData: false,
+      contentType: false,
+
+      error: function (response) {
+        console.error("Failed to upload image:", response);
+        alert("Menu item saved, but the image upload failed.");
+      }
+    });
+  }
+
+  $(".nav-link[data-tab]").click(function () { // tab navigation
+
+    $(".nav-link[data-tab]").removeClass("active");
+    $(".tab-panel").removeClass("active");
+
+    $(this).addClass("active");
+    $("#tab-" + $(this).data("tab")).addClass("active");
+  });
+
+  $("#menuByCategoryWrap").on("click", "[data-edit-menu]", function () {
+
+    let itemId = $(this).data("edit-menu");
+    let item = null;
+
+    for (let i = 0; i < menuItemList.length; i++) {
+      if (menuItemList[i].itemId === itemId) {
+        item = menuItemList[i];
+        break;
+      }
+    }
+
+    openMenuModal(item);
+  });
+
+  $("#menuByCategoryWrap").on("click", "[data-delete-menu]", function () {
+
+    let itemId = $(this).data("delete-menu");
+
+    if (!confirm("Remove this item from the menu?")) {
+      return;
+    }
+
+    $.ajax({
+      url: "http://localhost:8080/v1/menu/" + itemId,
+      type: "DELETE",
+      headers: authHeaders(),
+
+      success: function () {
+        toast("Menu item removed", "success");
+        loadMenu();
+      },
+
+      error: function (response) {
+        console.error("Failed to delete menu item:", response);
+        alert("Could not delete the item. Please try again.");
+      }
+    });
+  });
+
+
+  $("#addMenuItemBtn").click(function () {
+    openMenuModal(null);
+  });
+
+
+  $("#menuForm").submit(function (event) {
+
+    event.preventDefault();
+
+    let id = $("#menuId").val();
+    let name = $("#menuName").val().trim();
+    let price = parseFloat($("#menuPrice").val());
+
+    if (name === "" || isNaN(price)) {
+      alert("Please enter a valid name and price.");
+      return;
+    }
+
+    let obj = {
+      "name": name,
+      "category": $("#menuCategory").val(),
+      "price": price,
+      "available": $("#menuAvailable").is(":checked"),
+      "ingredients": currentIngredients
+    };
+
+    if (id !== "") {
+      obj.itemId = Number(id);
+    }
+
+    $.ajax({
+      url:"http://localhost:8080/v1/menu",
+      type: id !== "" ? "PUT" : "POST",
+      contentType: "application/json",
+      headers: authHeaders(),
+      data: JSON.stringify(obj),
+
+      success: function (response) {
+
+        let saved = response.body;
+        let file = $("#menuImageFile")[0].files[0];
+
+        if (file) {
+          uploadMenuItemImage(saved.itemId, file);
+        }
+
+        toast(id !== "" ? "Menu item updated" : "Menu item added", "success");
+        closeModal("menuModal");
+        loadMenu();
+      },
+
+      error: function (response) {
+        console.error("Failed to save menu item:", response);
+        alert("Could not save the menu item. Please try again.");
+      }
+    });
+  });
+
+
+  $("#menuIngredientTags").on("click", "[data-remove-ingredient]", function () {
+    let index = $(this).data("remove-ingredient");
+    currentIngredients.splice(index, 1);
+    renderIngredientTags();
+  });
+
+  $("#menuIngredientInput").keydown(function (event) {
+
+    if (event.key === "Enter") {
+
+      event.preventDefault();
+
+      let val = $(this).val().trim().toLowerCase();
+
+      if (val !== "" && currentIngredients.indexOf(val) === -1) {
+        currentIngredients.push(val);
+        renderIngredientTags();
+      }
+
+      $(this).val("");
     }
   });
 
-  document.getElementById("logoutBtn").addEventListener("click", () => {
+  $("[data-close]").click(function () { // modal close
+    closeModal($(this).data("close"));
+  });
+
+  $(".modal-overlay").click(function (event) {
+    if (event.target === this) {
+      $(this).removeClass("open");
+    }
+  });
+
+  $("#logoutBtn").click(function () {
     localStorage.removeItem("JWT");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRole");
     window.location.href = "index.html";
   });
 
-  function openMenuModal(item) {
-    document.getElementById("menuModalTitle").textContent = item ? "Edit Menu Item" : "Add Menu Item";
-    document.getElementById("menuId").value = item?.itemId || "";
-    document.getElementById("menuName").value = item?.name || "";
-    document.getElementById("menuCategory").value = item?.category || "Starters";
-    document.getElementById("menuPrice").value = item?.price ?? "";
-    document.getElementById("menuAvailable").checked = item ? item.available : true;
-    document.getElementById("menuImageFile").value = "";
-
-    currentIngredients = item?.ingredients ? [...item.ingredients] : [];
-    renderIngredientTags();
-
-    openModal("menuModal");
-  }
-
-  document.getElementById("menuForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const id = document.getElementById("menuId").value;
-    const payload = {
-      name: document.getElementById("menuName").value.trim(),
-      category: document.getElementById("menuCategory").value,
-      price: parseFloat(document.getElementById("menuPrice").value),
-      available: document.getElementById("menuAvailable").checked,
-      ingredients: currentIngredients
-    };
-    if (id) payload.itemId = Number(id);
-
-    const res = await fetch(API_BASE_URL + "/v1/menu", {
-      method: id ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify(payload)
-    });
-    const saved = (await res.json()).body;
-
-    const file = document.getElementById("menuImageFile").files[0];
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-      await fetch(`${API_BASE_URL}/v1/menu/${saved.itemId}/image`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: formData
-      });
-    }
-
-    toast(id ? "Menu item updated" : "Menu item added", "success");
-    closeModal("menuModal");
-    loadMenu();
-  });
-
-  function closeModal(id) {
-    document.getElementById(id).classList.remove("open");
-  }
-
-  document.querySelectorAll("[data-close]").forEach(
-          b => b.addEventListener("click", () => closeModal(b.dataset.close)));
-
-  document.querySelectorAll(".modal-overlay").forEach(
-          o => o.addEventListener("click", e => { if (e.target === o) o.classList.remove("open"); }));
-
-  /* ---------------------------- tabs ---------------------------- */
-  document.querySelectorAll(".nav-link[data-tab]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-link[data-tab]").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-    });
-  });
-
-  let currentIngredients = [];
-
-  function renderIngredientTags() {
-    const wrap = document.getElementById("menuIngredientTags");
-    wrap.innerHTML = currentIngredients.map((ing, idx) => `
-    <span class="stamp stamp-pending" style="cursor:pointer;" data-remove-ingredient="${idx}">
-      ${esc(ing)} ✕
-    </span>`).join("");
-  }
-
-  document.getElementById("menuIngredientTags").addEventListener("click", e => {
-    const idx = e.target.closest("[data-remove-ingredient]")?.dataset.removeIngredient;
-    if (idx !== undefined) {
-      currentIngredients.splice(Number(idx), 1);
-      renderIngredientTags();
-    }
-  });
-
-  document.getElementById("menuIngredientInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const val = e.target.value.trim().toLowerCase();
-      if (val && !currentIngredients.includes(val)) {
-        currentIngredients.push(val);
-        renderIngredientTags();
-      }
-      e.target.value = "";
-    }
-  });
-
-  /* ============================ OVERVIEW ============================ */
-  // TODO: once StatsController is implemented, replace DB.getStatsSummary()/
-  // DB.getTopItems() with:
-  //   fetch(API_BASE_URL + "/v1/stats/summary?range=today", { headers: authHeaders() })
-  //   fetch(API_BASE_URL + "/v1/stats/top-items?range=today", { headers: authHeaders() })
-  function loadOverview() {
-    const summary = DB.getStatsSummary();
-    document.getElementById("statEarned").textContent = money(summary.totalEarned);
-    document.getElementById("statOrders").textContent = summary.ordersCount;
-    document.getElementById("statAvg").textContent = money(summary.avgOrderValue);
-    document.getElementById("statActive").textContent = summary.activeOrders;
-
-    const topItems = DB.getTopItems(6);
-    const topEl = document.getElementById("topItemsList");
-    if (!topItems.length) {
-      topEl.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">No sales yet</div></div>';
-    } else {
-      const max = Math.max(...topItems.map(i => i.qty));
-      topEl.innerHTML = topItems.map(i => `
-        <div class="bar-row">
-          <div class="bar-row-top"><span class="name">${esc(i.name)}</span><span class="count">${i.qty} sold</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:${(i.qty / max) * 100}%"></div></div>
-        </div>`).join("");
-    }
-
-    const recent = DB.getAllOrders().slice(0, 6);
-    document.getElementById("recentOrdersBody").innerHTML = recent.length
-            ? recent.map(o => `
-        <tr>
-          <td class="cell-mono">${orderCode(o.orderId)}</td>
-          <td>${esc(o.customerName)}</td>
-          <td class="cell-muted">${o.items.reduce((n, i) => n + i.qty, 0)} items</td>
-          <td class="cell-mono">${money(o.total)}</td>
-          <td>${stampFor(o.status)}</td>
-        </tr>`).join("")
-            : '<tr><td colspan="5" class="empty-state">No orders yet</td></tr>';
-  }
-
-  /* ============================ ALL ORDERS ============================ */
-  // TODO: once OrderController is implemented, replace DB.getAllOrders() with
-  // fetch(API_BASE_URL + "/v1/order", { headers: authHeaders() })
-  let orderStatusFilter = "ALL";
-  function loadAllOrders() {
-    const all = DB.getAllOrders();
-    const list = orderStatusFilter === "ALL" ? all : all.filter(o => o.status === orderStatusFilter);
-    document.getElementById("allOrdersBody").innerHTML = list.length ? list.map(o => `
-      <tr>
-        <td class="cell-mono">${orderCode(o.orderId)}</td>
-        <td>${esc(o.customerName)}</td>
-        <td class="cell-muted">${o.items.map(i => `${i.qty}× ${esc(i.name)}`).join(", ")}</td>
-        <td class="cell-mono">${esc(o.pickupTime)}</td>
-        <td class="cell-mono">${money(o.total)}</td>
-        <td>${stampFor(o.status)}</td>
-      </tr>`).join("") : '<tr><td colspan="6" class="empty-state">No orders in this view</td></tr>';
-  }
-  document.getElementById("orderStatusTabs").addEventListener("click", e => {
-    const btn = e.target.closest("[data-status]");
-    if (!btn) return;
-    document.querySelectorAll("#orderStatusTabs .category-tab").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    orderStatusFilter = btn.dataset.status;
-    loadAllOrders();
-  });
-
-  /* ============================ STAFF ============================ */
-  // TODO: once your UserController auth rules are finalized, wire these to
-  // GET /v1/user/all, POST /v1/user, PUT /v1/user, DELETE /v1/user/{id}.
-  function loadUsers() {
-    const users = DB.getUsers();
-    document.getElementById("usersBody").innerHTML = users.length ? users.map(u => `
-      <tr>
-        <td><strong>${esc(u.username)}</strong></td>
-        <td class="cell-muted">${esc(u.email || "—")}</td>
-        <td><span class="badge-role">${esc(u.userRoles)}</span></td>
-        <td class="cell-actions">
-          <button class="icon-btn" data-edit-user="${u.userId}" title="Edit">✎</button>
-          <button class="icon-btn" data-delete-user="${u.userId}" title="Delete">🗑</button>
-        </td>
-      </tr>`).join("") : '<tr><td colspan="4" class="empty-state">No accounts yet</td></tr>';
-  }
-  document.getElementById("usersBody").addEventListener("click", e => {
-    const editId = e.target.closest("[data-edit-user]")?.dataset.editUser;
-    const delId = e.target.closest("[data-delete-user]")?.dataset.deleteUser;
-    if (editId) openUserModal(DB.getUsers().find(u => String(u.userId) === editId));
-    if (delId) {
-      if (!confirm("Remove this account?")) return;
-      DB.deleteUser(Number(delId));
-      toast("Account removed", "success");
-      loadUsers();
-    }
-  });
-  function openUserModal(u) {
-    document.getElementById("userModalTitle").textContent = u ? "Edit Account" : "Add Account";
-    document.getElementById("userId").value = u?.userId || "";
-    document.getElementById("userUsername").value = u?.username || "";
-    document.getElementById("userPassword").value = u?.password || "";
-    document.getElementById("userContact").value = u?.contact||"";
-    document.getElementById("userEmail").value = u?.email || "";
-    document.getElementById("userRoleSelect").value = u?.userRoles || "CUSTOMER";
-    openModal("userModal");
-  }
-  document.getElementById("addUserBtn").addEventListener("click", () => openUserModal(null));
-  document.getElementById("userForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const id = document.getElementById("userId").value;
-    const payload = {
-      username: document.getElementById("userUsername").value.trim(),
-      password: document.getElementById("userPassword").value.trim(),
-      contact: document.getElementById("userContact").value.trim(),
-      email: document.getElementById("userEmail").value.trim(),
-      userRoles: document.getElementById("userRoleSelect").value
-    };
-    if (id) { DB.updateUser({ ...payload, userId: Number(id) }); toast("Account updated", "success"); }
-    else { DB.addUser(payload); toast("Account created", "success"); }
-    closeModal("userModal");
-    loadUsers();
-  });
-
-  /* ============================ init ============================ */
-  loadOverview();
   loadMenu();
-  loadAllOrders();
-  loadUsers();
 </script>
 </body>
 </html>

@@ -29,7 +29,7 @@ public class MenuServiceImpl implements MenuService {
     private final MenuItemRepository menuItemRepository;
     private final IngredientRepository ingredientRepository;
 
-    private static final String UPLOAD_DIR = "resources/menu-images";
+    private static final String UPLOAD_DIR = "uploads/menu-images";
 
     @Override
     public List<MenuItemDTO> getAllMenuItems(MenuItemDTO menuItemDTO) {
@@ -118,8 +118,7 @@ public class MenuServiceImpl implements MenuService {
             menuItem.setAvailable(menuItemDTO.isAvailable());
             menuItem.setImageFileName(menuItemDTO.getImageFileName());
             menuItem.setIngredients(menuItemDTO.getIngredients());
-            menuItemRepository.save(menuItem);
-
+            
             menuItemRepository.save(menuItem);
             log.info("MenuItem saved successfully");
 
