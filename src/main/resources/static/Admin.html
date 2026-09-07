@@ -156,9 +156,19 @@
       background: #FBEBCE;
     }
 
+    .stamp-preparing {
+      color: var(--slate-ink);
+      background: var(--slate-light);
+    }
+
     .stamp-ready {
       color: var(--green-ink);
       background: var(--green-light);
+    }
+
+    .stamp-served {
+      color: var(--ink-soft);
+      background: #E7DEC7;
     }
 
     .stamp-cancelled {
@@ -758,6 +768,7 @@
         <div>
           <div class="page-title">All Orders</div>
         </div>
+        <button class="btn btn-primary" id="newOrderBtn">+ New Order</button>
       </div>
 
       <div class="category-tabs" id="orderStatusTabs">
@@ -794,13 +805,14 @@
             <thead>
             <tr>
               <th>Username</th>
-              <th>Password</th>
               <th>Contact</th>
               <th>Email</th>
-              <th>Role</th><th>
+              <th>Role</th>
+              <th>Status</th>
+              <th></th>
             </tr>
             </thead>
-            <tbody id="usersBody"><tr><td colspan="4" class="loading-row">Loading…</td></tr></tbody>
+            <tbody id="usersBody"><tr><td colspan="6" class="loading-row">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -829,9 +841,7 @@
       <div class="field-row">
         <div class="field">
           <label for="menuCategory">Category</label>
-          <select id="menuCategory">
-            <option>Starters</option><option>Mains</option><option>Sides</option><option>Desserts</option><option>Drinks</option>
-          </select>
+          <select id="menuCategory"></select>
         </div>
         <div class="field">
           <label for="menuPrice">Price (Rs.)</label>
@@ -856,6 +866,52 @@
   </div>
 </div>
 
+<!-- New order (walk-in) modal -->
+<div class="modal-overlay" id="newOrderModal">
+  <div class="ticket modal-box">
+    <div class="modal-head">
+      <span class="modal-title">New Walk-In Order</span>
+      <button class="modal-close" data-close="newOrderModal">✕</button>
+    </div>
+    <form id="newOrderForm">
+      <div class="field">
+        <label for="newOrderCustomerName">Customer Name</label>
+        <input type="text" id="newOrderCustomerName" placeholder="Walk-in / phone order" required />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="newOrderItemSelect">Menu Item</label>
+          <select id="newOrderItemSelect"></select>
+        </div>
+        <div class="field" style="max-width:100px;">
+          <label for="newOrderQty">Qty</label>
+          <input type="number" id="newOrderQty" min="1" value="1" />
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-block" id="newOrderAddItemBtn" style="margin-bottom:12px;">+ Add to Order</button>
+      <div id="newOrderCartList" style="margin-bottom:12px;"></div>
+      <div class="field-row">
+        <div class="field">
+          <label for="newOrderPickupTime">Pickup Time</label>
+          <input type="text" id="newOrderPickupTime" placeholder="e.g. 12:30 PM" />
+        </div>
+        <div class="field">
+          <label for="newOrderDiscountCode">Discount Code (optional)</label>
+          <input type="text" id="newOrderDiscountCode" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="newOrderNotes">Notes</label>
+        <input type="text" id="newOrderNotes" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="newOrderModal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Place Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- User account modal -->
 <div class="modal-overlay" id="userModal">
   <div class="ticket modal-box">
@@ -871,7 +927,8 @@
       </div>
       <div class="field">
         <label for="userPassword">Password</label>
-        <input type="text" id="userPassword" required />
+        <input type="text" id="userPassword" />
+        <div class="field-hint">Leave blank when editing to keep the current password.</div>
       </div>
       <div class="field">
         <label for="userContact">Contact</label>
@@ -900,12 +957,58 @@
 <div id="toastStack"></div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="db.js"></script>
 <script>
+
+  initSessionChrome("ADMIN");
 
   let menuItemList = [];
   let currentIngredients = [];
 
-  const MENU_CATEGORIES = ["Starters", "Mains", "Sides", "Desserts", "Drinks"];
+  let categoryList = [];
+
+  function loadCategories() {
+
+    $.ajax({
+      url: "http://localhost:8080/v1/category",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        categoryList = response.body;
+        populateCategoryDropdown();
+        renderMenu();
+      },
+
+      error: function (response) {
+        console.error("Failed to load categories:", response);
+      }
+    });
+  }
+
+  function populateCategoryDropdown() {
+
+    let select = $("#menuCategory");
+    let html = "";
+
+    for (let i = 0; i < categoryList.length; i++) {
+      html += "<option value='" + esc(categoryList[i].categoryName) + "'>" + esc(categoryList[i].categoryName) + "</option>";
+    }
+
+    select.html(html);
+  }
+
+  function distinctCategoriesFromItems() {
+
+    let seen = [];
+    for (let i = 0; i < menuItemList.length; i++) {
+      if (menuItemList[i].category && seen.indexOf(menuItemList[i].category) === -1) {
+        seen.push(menuItemList[i].category);
+      }
+    }
+
+    return seen;
+  }
 
   function openModal(id) { // modal helper
     $("#" + id).addClass("open");
@@ -939,9 +1042,13 @@
     let wrap = $("#menuByCategoryWrap");
     let html = "";
 
-    for (let i = 0; i < MENU_CATEGORIES.length; i++) {
+    let categoriesToShow = categoryList.length
+            ? categoryList.map(function (c) { return c.categoryName; })
+            : distinctCategoriesFromItems();
 
-      let category = MENU_CATEGORIES[i];
+    for (let i = 0; i < categoriesToShow.length; i++) {
+
+      let category = categoriesToShow[i];
       let categoryItems = [];
 
       for (let j = 0; j < menuItemList.length; j++) {
@@ -1014,7 +1121,7 @@
     $("#menuModalTitle").text(item ? "Edit Menu Item" : "Add Menu Item");
     $("#menuId").val(item ? item.itemId : "");
     $("#menuName").val(item ? item.name : "");
-    $("#menuCategory").val(item ? item.category : "Starters");
+    $("#menuCategory").val(item ? item.category : (categoryList.length ? categoryList[0].categoryName : ""));
     $("#menuPrice").val(item ? item.price : "");
     $("#menuAvailable").prop("checked", item ? item.available : true);
     $("#menuImageFile").val("");
@@ -1052,6 +1159,16 @@
 
     $(this).addClass("active");
     $("#tab-" + $(this).data("tab")).addClass("active");
+
+    let tab = $(this).data("tab");
+
+    if (tab === "overview") {
+      loadStats();
+    } else if (tab === "orders") {
+      loadAllOrders();
+    } else if (tab === "staff") {
+      loadUsers();
+    }
   });
 
   $("#menuByCategoryWrap").on("click", "[data-edit-menu]", function () {
@@ -1176,70 +1293,6 @@
     renderIngredientTags();
   }
 
-  function addIngredientEntries(rawValue) {
-
-    let parts = rawValue.split(",");
-
-    for (let i = 0; i < parts.length; i++) {
-
-      let val = parts[i].trim().toLowerCase();
-
-      if (val !== "" && currentIngredients.indexOf(val) === -1) {
-        currentIngredients.push(val);
-      }
-    }
-
-    renderIngredientTags();
-  }
-
-  function addIngredientEntries(rawValue) {
-
-    let parts = rawValue.split(",");
-
-    for (let i = 0; i < parts.length; i++) {
-
-      let val = parts[i].trim().toLowerCase();
-
-      if (val !== "" && currentIngredients.indexOf(val) === -1) {
-        currentIngredients.push(val);
-      }
-    }
-
-    renderIngredientTags();
-  }
-
-  function addIngredientEntries(rawValue) {
-
-    let parts = rawValue.split(",");
-
-    for (let i = 0; i < parts.length; i++) {
-
-      let val = parts[i].trim().toLowerCase();
-
-      if (val !== "" && currentIngredients.indexOf(val) === -1) {
-        currentIngredients.push(val);
-      }
-    }
-
-    renderIngredientTags();
-  }
-
-  function addIngredientEntries(rawValue) {
-
-    let parts = rawValue.split(",");
-
-    for (let i = 0; i < parts.length; i++) {
-
-      let val = parts[i].trim().toLowerCase();
-
-      if (val !== "" && currentIngredients.indexOf(val) === -1) {
-        currentIngredients.push(val);
-      }
-    }
-
-    renderIngredientTags();
-  }
-
   $("#menuIngredientInput").keydown(function (event) {
 
     if (event.key === "Enter") {
@@ -1267,13 +1320,514 @@
   });
 
   $("#logoutBtn").click(function () {
+
+    let refreshToken = localStorage.getItem("refreshToken");
+
+    if (refreshToken) {
+      $.ajax({
+        url: "http://localhost:8080/v1/login/logout",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ refreshToken: refreshToken })
+      });
+    }
+
     localStorage.removeItem("JWT");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRole");
+    localStorage.removeItem("username");
+    localStorage.removeItem("refreshToken");
     window.location.href = "index.html";
   });
 
+  function itemsSummary(items) {
+
+    if (!items || items.length === 0) {
+      return "—";
+    }
+
+    let parts = [];
+    for (let i = 0; i < items.length; i++) {
+      parts.push(items[i].qty + "× " + items[i].name);
+    }
+
+    return esc(parts.join(", "));
+  }
+
+  /* ============================ OVERVIEW ============================ */
+
+  function loadStats() {
+
+    $.ajax({
+      url: "http://localhost:8080/v1/stats/overview",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        let stats = response.body;
+        $("#statEarned").text(money(stats.totalEarned));
+        $("#statOrders").text(stats.ordersCount);
+        $("#statAvg").text(money(stats.avgOrderValue));
+        $("#statActive").text(stats.activeOrders);
+      },
+
+      error: function (response) {
+        console.error("Failed to load stats:", response);
+      }
+    });
+
+    $.ajax({
+      url: "http://localhost:8080/v1/stats/top-sellers",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        renderTopSellers(response.body);
+      },
+
+      error: function (response) {
+        console.error("Failed to load top sellers:", response);
+      }
+    });
+
+    $.ajax({
+      url: "http://localhost:8080/v1/order",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        renderRecentOrders(response.body);
+      },
+
+      error: function (response) {
+        console.error("Failed to load recent orders:", response);
+      }
+    });
+  }
+
+  function renderTopSellers(topSellers) {
+
+    let wrap = $("#topItemsList");
+
+    if (!topSellers || topSellers.length === 0) {
+      wrap.html("<div class='empty-state'>No sales yet</div>");
+      return;
+    }
+
+    let html = "";
+    for (let i = 0; i < topSellers.length; i++) {
+      html += "<div style='display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);'>";
+      html += "<span>" + esc(topSellers[i].name) + "</span>";
+      html += "<span class='cell-mono'>" + topSellers[i].quantity + "×</span>";
+      html += "</div>";
+    }
+
+    wrap.html(html);
+  }
+
+  function renderRecentOrders(orders) {
+
+    let body = $("#recentOrdersBody");
+
+    if (!orders || orders.length === 0) {
+      body.html("<tr><td colspan='5' class='empty-state'>No orders yet</td></tr>");
+      return;
+    }
+
+    let sorted = orders.slice().sort(function (a, b) {
+      return b.orderId - a.orderId;
+    });
+
+    let recent = sorted.slice(0, 5);
+
+    let html = "";
+    for (let i = 0; i < recent.length; i++) {
+
+      let o = recent[i];
+
+      html += "<tr>";
+      html += "<td class='cell-mono'>" + orderCode(o.orderId) + "</td>";
+      html += "<td>" + esc(o.customerName) + "</td>";
+      html += "<td class='cell-muted'>" + itemsSummary(o.items) + "</td>";
+      html += "<td class='cell-mono'>" + money(o.total) + "</td>";
+      html += "<td><span class='stamp stamp-" + o.status.toLowerCase() + "'>" + o.status + "</span></td>";
+      html += "</tr>";
+    }
+
+    body.html(html);
+  }
+
+  /* ============================ ALL ORDERS ============================ */
+
+  let allOrdersList = [];
+  let activeOrderStatusFilter = "ALL";
+
+  function loadAllOrders() {
+
+    $.ajax({
+      url: "http://localhost:8080/v1/order",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        allOrdersList = response.body;
+        renderAllOrders();
+      },
+
+      error: function (response) {
+        console.error("Failed to load orders:", response);
+        alert("Could not load orders. Please try again.");
+      }
+    });
+  }
+
+  function renderAllOrders() {
+
+    let body = $("#allOrdersBody");
+    let list = activeOrderStatusFilter === "ALL"
+            ? allOrdersList
+            : allOrdersList.filter(function (o) { return o.status === activeOrderStatusFilter; });
+
+    if (list.length === 0) {
+      body.html("<tr><td colspan='6' class='empty-state'>No orders here</td></tr>");
+      return;
+    }
+
+    let html = "";
+    for (let i = 0; i < list.length; i++) {
+
+      let o = list[i];
+
+      html += "<tr>";
+      html += "<td class='cell-mono'>" + orderCode(o.orderId) + "</td>";
+      html += "<td>" + esc(o.customerName) + "</td>";
+      html += "<td class='cell-muted'>" + itemsSummary(o.items) + "</td>";
+      html += "<td class='cell-muted'>" + esc(o.pickupTime) + "</td>";
+      html += "<td class='cell-mono'>" + money(o.total) + "</td>";
+      html += "<td><span class='stamp stamp-" + o.status.toLowerCase() + "'>" + o.status + "</span></td>";
+      html += "</tr>";
+    }
+
+    body.html(html);
+  }
+
+  $("#orderStatusTabs").on("click", "[data-status]", function () {
+
+    $("#orderStatusTabs .category-tab").removeClass("active");
+    $(this).addClass("active");
+
+    activeOrderStatusFilter = $(this).data("status");
+    renderAllOrders();
+  });
+
+  /* ============================ NEW ORDER (WALK-IN) ============================ */
+
+  let newOrderCart = [];
+
+  function populateNewOrderItemSelect() {
+
+    let select = $("#newOrderItemSelect");
+    let html = "";
+
+    for (let i = 0; i < menuItemList.length; i++) {
+      if (menuItemList[i].available) {
+        html += "<option value='" + menuItemList[i].itemId + "'>" + esc(menuItemList[i].name) + " — " + money(menuItemList[i].price) + "</option>";
+      }
+    }
+
+    select.html(html);
+  }
+
+  function renderNewOrderCart() {
+
+    let wrap = $("#newOrderCartList");
+
+    if (newOrderCart.length === 0) {
+      wrap.html("<div class='cell-muted' style='font-size:13px;'>No items added yet</div>");
+      return;
+    }
+
+    let html = "";
+    let total = 0;
+
+    for (let i = 0; i < newOrderCart.length; i++) {
+
+      let line = newOrderCart[i];
+      total += line.price * line.qty;
+
+      html += "<div style='display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);'>";
+      html += "<span>" + line.qty + "× " + esc(line.name) + "</span>";
+      html += "<span class='cell-mono'>" + money(line.price * line.qty) + " <button type='button' class='icon-btn' data-remove-cart-line='" + i + "'>✕</button></span>";
+      html += "</div>";
+    }
+
+    html += "<div style='display:flex; justify-content:space-between; padding-top:8px; font-weight:600;'><span>Total</span><span>" + money(total) + "</span></div>";
+
+    wrap.html(html);
+  }
+
+  $("#newOrderBtn").click(function () {
+
+    newOrderCart = [];
+    $("#newOrderForm")[0].reset();
+    populateNewOrderItemSelect();
+    renderNewOrderCart();
+    openModal("newOrderModal");
+  });
+
+  $("#newOrderAddItemBtn").click(function () {
+
+    let itemId = Number($("#newOrderItemSelect").val());
+    let qty = Number($("#newOrderQty").val()) || 1;
+
+    let item = null;
+    for (let i = 0; i < menuItemList.length; i++) {
+      if (menuItemList[i].itemId === itemId) {
+        item = menuItemList[i];
+        break;
+      }
+    }
+
+    if (!item) {
+      return;
+    }
+
+    newOrderCart.push({ menuItemId: item.itemId, name: item.name, price: item.price, qty: qty });
+    renderNewOrderCart();
+  });
+
+  $("#newOrderCartList").on("click", "[data-remove-cart-line]", function () {
+
+    let index = $(this).data("remove-cart-line");
+    newOrderCart.splice(index, 1);
+    renderNewOrderCart();
+  });
+
+  $("#newOrderForm").submit(function (event) {
+
+    event.preventDefault();
+
+    if (newOrderCart.length === 0) {
+      alert("Add at least one item to the order.");
+      return;
+    }
+
+    let obj = {
+      "customerId": 0,
+      "customerName": $("#newOrderCustomerName").val().trim(),
+      "items": newOrderCart,
+      "pickupTime": $("#newOrderPickupTime").val().trim(),
+      "notes": $("#newOrderNotes").val().trim(),
+      "discountCode": $("#newOrderDiscountCode").val().trim()
+    };
+
+    $.ajax({
+      url: "http://localhost:8080/v1/order",
+      type: "POST",
+      contentType: "application/json",
+      headers: authHeaders(),
+      data: JSON.stringify(obj),
+
+      success: function (response) {
+        toast("Order " + orderCode(response.body.orderId) + " placed", "success");
+        closeModal("newOrderModal");
+        loadAllOrders();
+        loadStats();
+      },
+
+      error: function (response) {
+        console.error("Failed to place order:", response);
+        alert("Could not place the order. Please try again.");
+      }
+    });
+  });
+
+  /* ============================ STAFF ============================ */
+
+  let usersList = [];
+
+  function loadUsers() {
+
+    $.ajax({
+      url: "http://localhost:8080/v1/user",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        usersList = response.body;
+        renderUsers();
+      },
+
+      error: function (response) {
+        console.error("Failed to load users:", response);
+        alert("Could not load staff accounts. Please try again.");
+      }
+    });
+  }
+
+  function renderUsers() {
+
+    let body = $("#usersBody");
+
+    if (usersList.length === 0) {
+      body.html("<tr><td colspan='6' class='empty-state'>No accounts yet</td></tr>");
+      return;
+    }
+
+    let html = "";
+    for (let i = 0; i < usersList.length; i++) {
+
+      let u = usersList[i];
+
+      html += "<tr>";
+      html += "<td><strong>" + esc(u.username) + "</strong></td>";
+      html += "<td class='cell-muted'>" + esc(u.contact) + "</td>";
+      html += "<td class='cell-muted'>" + esc(u.email) + "</td>";
+      html += "<td>" + esc(u.userRoles) + "</td>";
+      html += "<td><span class='stamp " + (u.enabled ? "stamp-ready" : "stamp-cancelled") + "'>" + (u.enabled ? "Active" : "Disabled") + "</span></td>";
+      html += "<td class='cell-actions'>";
+      html += "<button class='icon-btn' data-edit-user='" + u.userId + "' title='Edit'>✎</button>";
+      html += "<button class='icon-btn' data-toggle-user='" + u.userId + "' data-enabled='" + u.enabled + "' title='" + (u.enabled ? "Disable account" : "Enable account") + "'>" + (u.enabled ? "🔒" : "🔓") + "</button>";
+      html += "<button class='icon-btn' data-delete-user='" + u.userId + "' title='Delete'>🗑</button>";
+      html += "</td>";
+      html += "</tr>";
+    }
+
+    body.html(html);
+  }
+
+  function openUserModal(user) {
+
+    $("#userModalTitle").text(user ? "Edit Account" : "Add Account");
+    $("#userId").val(user ? user.userId : "");
+    $("#userUsername").val(user ? user.username : "");
+    $("#userPassword").val("");
+    $("#userContact").val(user ? user.contact : "");
+    $("#userEmail").val(user ? user.email : "");
+    $("#userRoleSelect").val(user ? user.userRoles : "CUSTOMER");
+
+    openModal("userModal");
+  }
+
+  $("#addUserBtn").click(function () {
+    openUserModal(null);
+  });
+
+  $("#usersBody").on("click", "[data-edit-user]", function () {
+
+    let userId = $(this).data("edit-user");
+    let user = null;
+
+    for (let i = 0; i < usersList.length; i++) {
+      if (usersList[i].userId === userId) {
+        user = usersList[i];
+        break;
+      }
+    }
+
+    openUserModal(user);
+  });
+
+  $("#usersBody").on("click", "[data-toggle-user]", function () {
+
+    let userId = $(this).data("toggle-user");
+    let currentlyEnabled = $(this).data("enabled") === true;
+    let action = currentlyEnabled ? "disable" : "enable";
+
+    if (currentlyEnabled && !confirm("Disable this account? They will be logged out immediately and unable to sign back in until re-enabled.")) {
+      return;
+    }
+
+    $.ajax({
+      url: "http://localhost:8080/v1/user/" + userId + "/" + action,
+      type: "PATCH",
+      headers: authHeaders(),
+
+      success: function () {
+        toast(currentlyEnabled ? "Account disabled" : "Account enabled", "success");
+        loadUsers();
+      },
+
+      error: function (response) {
+        console.error("Failed to " + action + " account:", response);
+        alert("Could not " + action + " the account. Please try again.");
+      }
+    });
+  });
+
+  $("#usersBody").on("click", "[data-delete-user]", function () {
+
+    let userId = $(this).data("delete-user");
+
+    if (!confirm("Remove this account?")) {
+      return;
+    }
+
+    $.ajax({
+      url: "http://localhost:8080/v1/user/" + userId,
+      type: "DELETE",
+      headers: authHeaders(),
+
+      success: function () {
+        toast("Account removed", "success");
+        loadUsers();
+      },
+
+      error: function (response) {
+        console.error("Failed to delete account:", response);
+        alert("Could not delete the account. Please try again.");
+      }
+    });
+  });
+
+  $("#userForm").submit(function (event) {
+
+    event.preventDefault();
+
+    let id = $("#userId").val();
+    let username = $("#userUsername").val().trim();
+    let password = $("#userPassword").val().trim();
+
+    if (username === "" || (id === "" && password === "")) {
+      alert("Please enter a valid username and password.");
+      return;
+    }
+
+    let obj = {
+      "username": username,
+      "password": password,
+      "contact": $("#userContact").val().trim(),
+      "email": $("#userEmail").val().trim(),
+      "userRoles": $("#userRoleSelect").val()
+    };
+
+    if (id !== "") {
+      obj.userId = Number(id);
+    }
+
+    $.ajax({
+      url: "http://localhost:8080/v1/user",
+      type: id !== "" ? "PUT" : "POST",
+      contentType: "application/json",
+      headers: authHeaders(),
+      data: JSON.stringify(obj),
+
+      success: function () {
+        toast(id !== "" ? "Account updated" : "Account added", "success");
+        closeModal("userModal");
+        loadUsers();
+      },
+
+      error: function (response) {
+        console.error("Failed to save account:", response);
+        alert("Could not save the account. Please try again.");
+      }
+    });
+  });
+
+  loadCategories();
   loadMenu();
+  loadStats();
 </script>
 </body>
 </html>
