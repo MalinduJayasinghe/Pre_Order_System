@@ -7,22 +7,55 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
   <style>
     :root {
-      --bg: #14100D; --bg-elev: #1E1811; --bg-elev-2: #271F16; --line: #3A2F22;
-      --paper: #FAF4E6; --ink: #241D14; --ink-soft: #6B5F4B;
-      --text: #F2ECDD; --text-muted: #AFA184;
-      --amber: #E8A33D; --amber-dark: #C27F1E; --amber-ink: #241804;
-      --green: #4C7A52; --green-light: #D9E6D6; --green-ink: #1D3320;
-      --slate-light: #DCE6EA; --slate-ink: #1C2E36;
-      --red: #B23A34; --red-light: #F3DAD8; --red-ink: #3B1512;
-      --radius: 3px; --shadow-lift: 0 14px 30px -12px rgba(0,0,0,.55);
+      --bg: #14100D;
+      --bg-elev: #1E1811;
+      --bg-elev-2: #271F16;
+      --line: #3A2F22;
+      --paper: #FAF4E6;
+      --ink: #241D14;
+      --ink-soft: #6B5F4B;
+      --text: #F2ECDD;
+      --text-muted: #AFA184;
+      --amber: #E8A33D;
+      --amber-dark: #C27F1E;
+      --amber-ink: #241804;
+      --green: #4C7A52;
+      --green-light: #D9E6D6;
+      --green-ink: #1D3320;
+      --slate-light: #DCE6EA;
+      --slate-ink: #1C2E36;
+      --red: #B23A34;
+      --red-light: #F3DAD8;
+      --red-ink: #3B1512;
+      --radius: 3px;
+      --shadow-lift: 0 14px 30px -12px rgba(0,0,0,.55);
       --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
       --font-body: 'Work Sans', -apple-system, Segoe UI, sans-serif;
       --font-mono: 'Space Mono', 'Courier New', monospace;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; }
-    button { font-family: inherit; }
-    .eyebrow { font-family: var(--font-mono); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; color: var(--text-muted); }
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
 
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius); border: 1px solid transparent; font-weight: 600; font-size: 14px; cursor: pointer; }
     .btn-primary { background: var(--amber); color: var(--amber-ink); }
@@ -181,6 +214,8 @@
 <script src="db.js"></script>
 <script>
 
+  initSessionChrome("CASHIER");
+
   document.querySelectorAll(".nav-link[data-tab]").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-link[data-tab]").forEach(b => b.classList.remove("active"));
@@ -191,18 +226,38 @@
     });
   });
 
-  const NEXT_STATUS = { PENDING: "PREPARING", PREPARING: "READY", READY: "SERVED" };
-  const NEXT_LABEL = { PENDING: "Start Preparing", PREPARING: "Mark Ready", READY: "Mark Served" };
+  const NEXT_STATUS = {
+    PENDING: "PREPARING",
+    PREPARING: "READY",
+    READY: "SERVED"
+  };
+
+  const NEXT_LABEL = {
+    PENDING: "Start Preparing",
+    PREPARING: "Mark Ready",
+    READY: "Mark Served"
+  };
+
   const QUEUE_STATUSES = ["PENDING", "PREPARING", "READY", "SERVED"];
 
-  // TODO: once OrderController is implemented, replace DB.getAllOrders() /
-  // DB.updateOrderStatus() with:
-  //   fetch(API_BASE_URL + "/v1/order", { headers: authHeaders() })
-  //   fetch(API_BASE_URL + "/v1/order/" + id + "/status", { method: "PATCH", headers: authHeaders(), body: JSON.stringify({ status }) })
+  let queueOrders = [];
+
   function loadQueue() {
-    const orders = DB.getAllOrders();
+    fetch(API_BASE_URL + "/v1/order", { headers: authHeaders() })
+            .then(response => response.json())
+            .then(response => {
+              queueOrders = response.body || [];
+              renderQueue();
+            })
+            .catch(error => {
+              console.error("Failed to load orders:", error);
+              toast("Could not load the order queue", "error");
+            });
+  }
+
+  function renderQueue() {
     QUEUE_STATUSES.forEach(status => {
-      const bucket = orders.filter(o => o.status === status).sort((a, b) => a.orderId - b.orderId);
+      const bucket = queueOrders.filter(o => o.status === status).sort((a, b) => a.orderId - b.orderId);
       document.getElementById("count-" + status).textContent = bucket.length;
       const col = document.getElementById("col-" + status);
       col.innerHTML = bucket.length ? bucket.map(orderCard).join("")
@@ -237,29 +292,50 @@
       </div>`;
   }
 
+  function updateOrderStatus(orderId, status) {
+    return fetch(API_BASE_URL + "/v1/order/" + orderId + "/status", {
+      method: "PATCH",
+      headers: Object.assign({
+        "Content-Type": "application/json" },
+              authHeaders()),
+      body: JSON.stringify({ status })
+    });
+  }
+
   document.querySelectorAll(".kanban").forEach(k => k.addEventListener("click", e => {
     const advanceId = e.target.closest("[data-advance]")?.dataset.advance;
     const cancelId = e.target.closest("[data-cancel]")?.dataset.cancel;
     if (advanceId) {
-      const order = DB.getAllOrders().find(o => o.orderId === Number(advanceId));
+      const order = queueOrders.find(o => o.orderId === Number(advanceId));
       const next = NEXT_STATUS[order.status];
-      DB.updateOrderStatus(Number(advanceId), next);
-      toast(`${orderCode(advanceId)} → ${next}`, "success");
-      loadQueue();
+      updateOrderStatus(Number(advanceId), next)
+              .then(() => {
+                toast(`${orderCode(advanceId)} → ${next}`, "success");
+                loadQueue();
+              })
+              .catch(error => {
+                console.error("Failed to update order:", error);
+                toast("Could not update the order", "error");
+              });
     }
     if (cancelId) {
       if (!confirm("Cancel this order?")) return;
-      DB.updateOrderStatus(Number(cancelId), "CANCELLED");
-      toast("Order cancelled", "success");
-      loadQueue();
-      loadHistory();
+      updateOrderStatus(Number(cancelId), "CANCELLED")
+              .then(() => {
+                toast("Order cancelled", "success");
+                loadQueue();
+              })
+              .catch(error => {
+                console.error("Failed to cancel order:", error);
+                toast("Could not cancel the order", "error");
+              });
     }
   }));
 
   document.getElementById("refreshBtn").addEventListener("click", loadQueue);
 
   function loadHistory() {
-    const list = DB.getAllOrders().filter(o => ["SERVED", "CANCELLED"].includes(o.status));
+    const list = queueOrders.filter(o => ["SERVED", "CANCELLED"].includes(o.status));
     document.getElementById("historyBody").innerHTML = list.length ? list.map(o => `
       <tr>
         <td class="cell-mono">${orderCode(o.orderId)}</td>
@@ -269,6 +345,26 @@
         <td><span class="stamp stamp-${o.status.toLowerCase()}">${o.status}</span></td>
       </tr>`).join("") : '<tr><td colspan="5" class="empty-state">Nothing completed yet</td></tr>';
   }
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+
+    let refreshToken = localStorage.getItem("refreshToken");
+
+    if (refreshToken) {
+      fetch(API_BASE_URL + "/v1/login/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refreshToken })
+      });
+    }
+
+    localStorage.removeItem("JWT");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("username");
+    localStorage.removeItem("refreshToken");
+    window.location.href = "index.html";
+  });
 
   loadQueue();
   setInterval(loadQueue, 15000);
