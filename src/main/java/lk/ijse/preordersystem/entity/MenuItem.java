@@ -19,7 +19,11 @@ public class MenuItem {
     private long itemId;
 
     private String name;
-    private String category;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     private double price;
     private boolean available;
     private String imageFileName;
