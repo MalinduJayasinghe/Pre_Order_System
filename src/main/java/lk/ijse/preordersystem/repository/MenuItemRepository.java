@@ -15,5 +15,5 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
             "SELECT mi.itemId FROM MenuItem mi JOIN mi.ingredients i WHERE i.ingredientName IN :excludedIngredients)")
     List<MenuItem> findAllExcludingIngredients(@Param("excludedIngredients") List<String> excludedIngredients);
 
-    List<MenuItem> findByCategory(String category);
+    List<MenuItem> findByCategory_CategoryName(String categoryName);
 }
