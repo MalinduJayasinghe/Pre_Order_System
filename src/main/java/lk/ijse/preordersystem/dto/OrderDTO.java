@@ -21,4 +21,5 @@ public class OrderDTO {
     private double total;
     private String status;
     private LocalDateTime placedAt;
+    private String discountCode;
 }
