@@ -12,13 +12,11 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
 
-    Optional<User> findByUserNameAndPassword(String username, String password);
-
     Optional<User> findByUserName(String username);
 
-    @Query(value = "SELECT new lk.ijse.preordersystem.dto.UserDTO(u.userId, u.userName, u.userRoles, u.contact, u.email, u.password) FROM User u")
+    @Query(value = "SELECT new lk.ijse.preordersystem.dto.UserDTO(u.userId, u.userName, u.role.roleName, u.contact, u.email, u.enabled) FROM User u")
     List<UserDTO> getAllUsers();
 
-    @Query(value = "SELECT new lk.ijse.preordersystem.dto.UserDTO(u.userId, u.userName, u.userRoles, u.contact, u.email, u.password) FROM User u WHERE u.userName LIKE %:username%")
+    @Query(value = "SELECT new lk.ijse.preordersystem.dto.UserDTO(u.userId, u.userName, u.role.roleName, u.contact, u.email, u.enabled) FROM User u WHERE u.userName LIKE %:username%")
     List<UserDTO> searchByUserName(String username);
 }
