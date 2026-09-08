@@ -12,4 +12,5 @@ public class UserDataDTO {
     private long userId;
     private String token;
     private String userRoles;
+    private String refreshToken;
 }
