@@ -22,7 +22,7 @@ public class JwtUtil {
     private String secretKey;
 
     @Value("${jwt.expiration}")
-    private Long expiration; // Changed from String to Long
+    private Long expiration;
 
     public String generateToken(UserDTO user) {
         Map<String, Object> claims = new HashMap<>();
@@ -34,8 +34,8 @@ public class JwtUtil {
                 .setClaims(claims)
                 .setSubject(user.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration)) // Now works with Long
-                .signWith(getSignKey(), SignatureAlgorithm.HS256) // Use HS256, not HS512 with secretKey
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 

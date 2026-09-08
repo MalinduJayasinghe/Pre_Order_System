@@ -40,6 +40,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/v1/menu/**", "/v1/menu/*/image").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/v1/menu/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/menu/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/v1/category/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/category/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/category/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/v1/discount/validate/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/discount").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/v1/discount").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/discount/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/v1/order").hasAnyAuthority("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/v1/order/customer/**").hasAuthority("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/v1/order").hasAnyAuthority("ADMIN", "CASHIER")
+                        .requestMatchers(HttpMethod.PATCH, "/v1/order/**").hasAnyAuthority("ADMIN", "CASHIER")
+                        .requestMatchers("/v1/user/**").hasAuthority("ADMIN")
+                        .requestMatchers("/v1/stats/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -65,7 +78,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
 
