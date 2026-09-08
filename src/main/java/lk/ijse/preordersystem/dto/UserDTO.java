@@ -15,6 +15,7 @@ public class UserDTO {
     private String contact;
     private String email;
     private String password;
+    private boolean enabled;
 
     public UserDTO(String userRoles, String password, String username) {
         this.userRoles = userRoles;
@@ -26,5 +27,14 @@ public class UserDTO {
         this.userId = userId;
         this.username = username;
         this.userRoles = userRoles;
+    }
+
+    public UserDTO(long userId, String username, String userRoles, String contact, String email, boolean enabled) {
+        this.userId = userId;
+        this.username = username;
+        this.userRoles = userRoles;
+        this.contact = contact;
+        this.email = email;
+        this.enabled = enabled;
     }
 }
