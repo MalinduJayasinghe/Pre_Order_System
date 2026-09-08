@@ -24,8 +24,12 @@ public class AiToolExecutor {
     private final StatsService statsService;
     private final UserService userService;
 
-    public List<Map<String, Object>> searchMenuItems(String categoryName, List<String> includeIngredients,
-                                                       List<String> excludeIngredients, Double minPrice, Double maxPrice) {
+    public List<Map<String, Object>> searchMenuItems(
+            String categoryName,
+            List<String> includeIngredients,
+            List<String> excludeIngredients,
+            Double minPrice,
+            Double maxPrice) {
 
         log.info("Execute tool searchMenuItems");
 

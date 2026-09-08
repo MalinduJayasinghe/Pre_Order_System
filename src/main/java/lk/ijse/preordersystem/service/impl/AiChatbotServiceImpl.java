@@ -19,11 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -179,7 +175,7 @@ public class AiChatbotServiceImpl implements AiChatbotService {
 
     private String buildSystemPrompt(String role) {
 
-        return "You are the AI assistant for a caf\u00e9 pre-order and point-of-sale system. "
+        return "You are the AI assistant for a restaurant pre-order and point-of-sale system. "
                 + "You ONLY help with this business: the menu (dishes, categories, ingredients, prices), "
                 + "placing or checking pre-orders, and - only where your tools allow it - the order queue, "
                 + "sales reports, and staff accounts. "
@@ -201,7 +197,7 @@ public class AiChatbotServiceImpl implements AiChatbotService {
         searchProperties.put("excludeIngredients", schemaStringArray("Only return dishes that do NOT contain any of these ingredients."));
         searchProperties.put("minPrice", schemaNumber("Minimum price."));
         searchProperties.put("maxPrice", schemaNumber("Maximum price."));
-        tools.add(functionTool("searchMenuItems", "Search the caf\u00e9 menu by category, price range, and ingredients to include or exclude.", searchProperties, List.of()));
+        tools.add(functionTool("searchMenuItems", "Search the restaurant menu by category, price range, and ingredients to include or exclude.", searchProperties, List.of()));
 
         Map<String, Object> orderStatusProperties = new LinkedHashMap<>();
         orderStatusProperties.put("orderId", schemaNumber("The order ID to look up."));
