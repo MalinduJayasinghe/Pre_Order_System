@@ -57,4 +57,24 @@ public class UserController {
         log.info("deleteUser API successful");
         return new CommonResponse(0, "Account Deleted", "Account deleted successfully");
     }
+
+    @PatchMapping(value = "/{userId}/disable", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse disableUser(@PathVariable Long userId) {
+
+        log.info("disableUser API was called");
+        userService.setAccountEnabled(userId, false);
+
+        log.info("disableUser API successful");
+        return new CommonResponse(0, "Account Disabled", "Account disabled successfully");
+    }
+
+    @PatchMapping(value = "/{userId}/enable", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse enableUser(@PathVariable Long userId) {
+
+        log.info("enableUser API was called");
+        userService.setAccountEnabled(userId, true);
+
+        log.info("enableUser API successful");
+        return new CommonResponse(0, "Account Enabled", "Account enabled successfully");
+    }
 }
