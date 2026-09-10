@@ -2,10 +2,13 @@ package lk.ijse.preordersystem.service.impl;
 
 import lk.ijse.preordersystem.dto.OrderDTO;
 import lk.ijse.preordersystem.dto.OrderItemDTO;
-import lk.ijse.preordersystem.entity.Order;
-import lk.ijse.preordersystem.entity.OrderItem;
+import lk.ijse.preordersystem.entity.*;
 import lk.ijse.preordersystem.enumeration.OrderStatus;
+import lk.ijse.preordersystem.repository.DiscountRepository;
 import lk.ijse.preordersystem.repository.OrderRepository;
+import lk.ijse.preordersystem.repository.OrderStatusHistoryRepository;
+import lk.ijse.preordersystem.repository.PaymentRepository;
+import lk.ijse.preordersystem.service.NotificationService;
 import lk.ijse.preordersystem.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +25,10 @@ import java.util.Optional;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final DiscountRepository discountRepository;
+    private final PaymentRepository paymentRepository;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private final NotificationService notificationService;
 
     @Override
     public OrderDTO placeOrder(OrderDTO orderDTO) {
@@ -39,7 +46,7 @@ public class OrderServiceImpl implements OrderService {
             order.setPlacedAt(LocalDateTime.now());
 
             List<OrderItem> orderItems = new ArrayList<>();
-            double total = 0;
+            double subtotal = 0;
 
             if (orderDTO.getItems() != null) {
                 for (OrderItemDTO itemDTO : orderDTO.getItems()) {
@@ -52,14 +59,42 @@ public class OrderServiceImpl implements OrderService {
                     orderItem.setOrder(order);
 
                     orderItems.add(orderItem);
-                    total += itemDTO.getPrice() * itemDTO.getQty();
+                    subtotal += itemDTO.getPrice() * itemDTO.getQty();
                 }
             }
 
             order.setOrderItems(orderItems);
+
+            double total = subtotal;
+
+            if (orderDTO.getDiscountCode() != null && !orderDTO.getDiscountCode().trim().isEmpty()) {
+
+                Optional<Discount> optionalDiscount = discountRepository.findByCodeIgnoreCase(orderDTO.getDiscountCode().trim());
+
+                if (optionalDiscount.isPresent() && optionalDiscount.get().isActive()) {
+                    Discount discount = optionalDiscount.get();
+                    order.setDiscount(discount);
+                    total = subtotal - (subtotal * discount.getPercentage() / 100.0);
+                }
+            }
+
             order.setTotal(total);
 
             Order savedOrder = orderRepository.save(order);
+
+            recordStatusHistory(savedOrder, OrderStatus.PENDING.name(), "SYSTEM");
+
+            Payment payment = new Payment();
+            payment.setOrder(savedOrder);
+            payment.setAmount(total);
+            payment.setMethod("COUNTER");
+            payment.setStatus("PENDING");
+            paymentRepository.save(payment);
+
+            if (savedOrder.getCustomerId() > 0) {
+                notificationService.createNotification(savedOrder.getCustomerId(),
+                        "Your order " + orderCode(savedOrder.getOrderId()) + " has been placed and is pending confirmation.");
+            }
 
             log.info("Order placed successfully");
             return mapToDto(savedOrder);
@@ -134,12 +169,45 @@ public class OrderServiceImpl implements OrderService {
             order.setStatus(status);
             orderRepository.save(order);
 
+            recordStatusHistory(order, status, "STAFF");
+
+            if (OrderStatus.SERVED.name().equals(status)) {
+
+                Optional<Payment> optionalPayment = paymentRepository.findByOrder_OrderId(orderId);
+                if (optionalPayment.isPresent()) {
+                    Payment payment = optionalPayment.get();
+                    payment.setStatus("PAID");
+                    payment.setPaidAt(LocalDateTime.now());
+                    paymentRepository.save(payment);
+                }
+            }
+
+            if (order.getCustomerId() > 0) {
+                notificationService.createNotification(order.getCustomerId(),
+                        "Your order " + orderCode(order.getOrderId()) + " is now " + status + ".");
+            }
+
             log.info("Order status updated successfully");
 
         }catch (Exception e){
             log.info("Error in method updateOrderStatus" + e.getMessage());
             throw e;
         }
+    }
+
+    private void recordStatusHistory(Order order, String status, String changedBy) {
+
+        OrderStatusHistory history = new OrderStatusHistory();
+        history.setOrder(order);
+        history.setStatus(status);
+        history.setChangedAt(LocalDateTime.now());
+        history.setChangedBy(changedBy);
+
+        orderStatusHistoryRepository.save(history);
+    }
+
+    private String orderCode(long orderId) {
+        return "#" + String.format("%04d", orderId);
     }
 
     private OrderDTO mapToDto(Order order) {
@@ -167,6 +235,7 @@ public class OrderServiceImpl implements OrderService {
         orderDTO.setTotal(order.getTotal());
         orderDTO.setStatus(order.getStatus());
         orderDTO.setPlacedAt(order.getPlacedAt());
+        orderDTO.setDiscountCode(order.getDiscount() != null ? order.getDiscount().getCode() : null);
 
         return orderDTO;
     }
