@@ -6,11 +6,11 @@ import java.util.List;
 
 public interface UserService {
 
-
     UserDTO getUserDetails(String username, String password, String userRoles);
     void saveUser(UserDTO userDTO);
     List<UserDTO> getAllUsers();
     List<UserDTO> searchUserByUsername(String username);
     void deleteUser(Long userId);
     void updateUser(UserDTO userDTO);
+    void setAccountEnabled(Long userId, boolean enabled);
 }
