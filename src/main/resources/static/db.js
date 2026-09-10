@@ -82,7 +82,7 @@ function refreshAccessTokenIfNeeded() {
 
 // Redirects to the login page if there's no session, and optionally enforces
 // the page's expected role. Also fills in the sidebar user-chip.
-function initSessionChrome(expectedRole) {
+function initSession(expectedRole) {
 
     if (!sessionUser.userId || !localStorage.getItem("JWT")) {
         window.location.href = "index.html";
