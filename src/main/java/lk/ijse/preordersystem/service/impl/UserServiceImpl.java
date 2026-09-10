@@ -1,11 +1,15 @@
 package lk.ijse.preordersystem.service.impl;
 
 import lk.ijse.preordersystem.dto.UserDTO;
+import lk.ijse.preordersystem.entity.Role;
 import lk.ijse.preordersystem.entity.User;
+import lk.ijse.preordersystem.repository.RoleRepository;
 import lk.ijse.preordersystem.repository.UserRepository;
+import lk.ijse.preordersystem.service.RefreshTokenService;
 import lk.ijse.preordersystem.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +21,9 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final RefreshTokenService refreshTokenService;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserDTO getUserDetails(String username, String password, String userRoles) {
@@ -25,19 +32,24 @@ public class UserServiceImpl implements UserService {
 
         try {
 
-            Optional<User> optionalUser = userRepository.findByUserNameAndPassword(username,password);
+            Optional<User> optionalUser = userRepository.findByUserName(username);
 
-            if(optionalUser.isEmpty()) {
+            if(optionalUser.isEmpty() || !passwordEncoder.matches(password, optionalUser.get().getPassword())) {
                 throw new RuntimeException("Sorry no user");
             }
 
             User user = optionalUser.get();
+
+            if (!user.isEnabled()) {
+                throw new RuntimeException("This account has been disabled. Contact an administrator.");
+            }
+
             UserDTO responseData = new UserDTO();
 
             responseData.setUserId(user.getUserId());
             responseData.setUsername(user.getUserName());
-            responseData.setUserRoles(user.getUserRoles());
-            responseData.setPassword(user.getPassword());
+            responseData.setUserRoles(user.getRole().getRoleName());
+            responseData.setEnabled(user.isEnabled());
 
             log.info("UserDetails retrieved successfully");
             return responseData;
@@ -54,18 +66,23 @@ public class UserServiceImpl implements UserService {
         log.info("Execute method saveUser");
 
         try {
+            Role role = roleRepository.findByRoleName(userDTO.getUserRoles())
+                    .orElseThrow(() -> new RuntimeException("Unknown role: " + userDTO.getUserRoles()));
+
             User user = new User();
             user.setUserName(userDTO.getUsername());
-            user.setPassword(userDTO.getPassword());
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
             user.setContact(userDTO.getContact());
             user.setEmail(userDTO.getEmail());
-            user.setUserRoles(userDTO.getUserRoles());
+            user.setRole(role);
+            user.setEnabled(true);
 
             userRepository.save(user);
             log.info("User saved successfully");
 
         }catch (Exception e){
             log.error("Error in method saveUser" + e.getMessage());
+            throw e;
         }
     }
 
@@ -113,6 +130,7 @@ public class UserServiceImpl implements UserService {
 
         }catch (Exception e){
             log.error("Error in method deleteUser" + e.getMessage());
+            throw e;
         }
     }
 
@@ -130,14 +148,50 @@ public class UserServiceImpl implements UserService {
 
             User user = optionalUser.get();
 
+            Role role = roleRepository.findByRoleName(userDTO.getUserRoles())
+                    .orElseThrow(() -> new RuntimeException("Unknown role: " + userDTO.getUserRoles()));
+
             user.setUserName(userDTO.getUsername());
-            user.setUserRoles(userDTO.getUserRoles());
+
+            if (userDTO.getPassword() != null && !userDTO.getPassword().trim().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+            }
+
+            user.setContact(userDTO.getContact());
+            user.setEmail(userDTO.getEmail());
+            user.setRole(role);
 
             userRepository.save(user);
             log.info("User updated successfully");
 
         }catch (Exception e){
             log.error("Error in method updateUser" + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void setAccountEnabled(Long userId, boolean enabled) {
+
+        log.info("Execute method setAccountEnabled");
+
+        try {
+
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            user.setEnabled(enabled);
+            userRepository.save(user);
+
+            if (!enabled) {
+                refreshTokenService.revokeAllForUser(userId);
+            }
+
+            log.info(enabled ? "Account enabled successfully" : "Account disabled successfully");
+
+        }catch (Exception e){
+            log.error("Error in method setAccountEnabled" + e.getMessage());
+            throw e;
         }
     }
 }
