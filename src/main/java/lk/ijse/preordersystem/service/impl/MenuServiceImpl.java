@@ -1,8 +1,10 @@
 package lk.ijse.preordersystem.service.impl;
 
 import lk.ijse.preordersystem.dto.MenuItemDTO;
+import lk.ijse.preordersystem.entity.Category;
 import lk.ijse.preordersystem.entity.Ingredient;
 import lk.ijse.preordersystem.entity.MenuItem;
+import lk.ijse.preordersystem.repository.CategoryRepository;
 import lk.ijse.preordersystem.repository.IngredientRepository;
 import lk.ijse.preordersystem.repository.MenuItemRepository;
 import lk.ijse.preordersystem.service.MenuService;
@@ -16,12 +18,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +27,7 @@ public class MenuServiceImpl implements MenuService {
 
     private final MenuItemRepository menuItemRepository;
     private final IngredientRepository ingredientRepository;
+    private final CategoryRepository categoryRepository;
 
     private static final String UPLOAD_DIR = "uploads/menu-images";
 
@@ -46,7 +44,7 @@ public class MenuServiceImpl implements MenuService {
                 MenuItemDTO menuItemDTO = new MenuItemDTO();
                 menuItemDTO.setItemId(menuItem.getItemId());
                 menuItemDTO.setName(menuItem.getName());
-                menuItemDTO.setCategory(menuItem.getCategory());
+                menuItemDTO.setCategory(menuItem.getCategory() != null ? menuItem.getCategory().getCategoryName() : null);
                 menuItemDTO.setPrice(menuItem.getPrice());
                 menuItemDTO.setAvailable(menuItem.isAvailable());
                 menuItemDTO.setImageFileName(menuItem.getImageFileName());
@@ -88,7 +86,7 @@ public class MenuServiceImpl implements MenuService {
                 MenuItemDTO menuItemDTO = new MenuItemDTO();
                 menuItemDTO.setItemId(menuItem.getItemId());
                 menuItemDTO.setName(menuItem.getName());
-                menuItemDTO.setCategory(menuItem.getCategory());
+                menuItemDTO.setCategory(menuItem.getCategory() != null ? menuItem.getCategory().getCategoryName() : null);
                 menuItemDTO.setPrice(menuItem.getPrice());
                 menuItemDTO.setAvailable(menuItem.isAvailable());
                 menuItemDTO.setImageFileName(menuItem.getImageFileName());
@@ -115,7 +113,7 @@ public class MenuServiceImpl implements MenuService {
 
             MenuItem menuItem = new MenuItem();
             menuItem.setName(menuItemDTO.getName());
-            menuItem.setCategory(menuItemDTO.getCategory());
+            menuItem.setCategory(resolveCategory(menuItemDTO.getCategory()));
             menuItem.setPrice(menuItemDTO.getPrice());
             menuItem.setAvailable(menuItemDTO.isAvailable());
             menuItem.setImageFileName(menuItemDTO.getImageFileName());
@@ -144,7 +142,7 @@ public class MenuServiceImpl implements MenuService {
 
             MenuItem menuItem = optionalMenuItem.get();
             menuItem.setName(menuItemDTO.getName());
-            menuItem.setCategory(menuItemDTO.getCategory());
+            menuItem.setCategory(resolveCategory(menuItemDTO.getCategory()));
             menuItem.setPrice(menuItemDTO.getPrice());
             menuItem.setAvailable(menuItemDTO.isAvailable());
             menuItem.setImageFileName(menuItemDTO.getImageFileName());
@@ -199,6 +197,26 @@ public class MenuServiceImpl implements MenuService {
             log.info("Error in method saveMenuItemImage" + e.getMessage());
             throw e;
         }
+    }
+
+    private Category resolveCategory(String categoryName) {
+
+        log.info("Execute method resolveCategory");
+
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            return null;
+        }
+
+        String cleanName = categoryName.trim();
+        Optional<Category> existingCategory = categoryRepository.findByCategoryNameIgnoreCase(cleanName);
+
+        if (existingCategory.isPresent()) {
+            return existingCategory.get();
+        }
+
+        Category category = new Category();
+        category.setCategoryName(cleanName);
+        return categoryRepository.save(category);
     }
 
     private Set<Ingredient> resolveIngredients(List<String> ingredientEntries) {
