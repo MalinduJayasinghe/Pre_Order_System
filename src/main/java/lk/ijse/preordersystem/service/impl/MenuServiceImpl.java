@@ -105,7 +105,7 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public void saveMenuItem(MenuItemDTO menuItemDTO) {
+    public MenuItemDTO saveMenuItem(MenuItemDTO menuItemDTO) {
 
         log.info("Execute method saveMenuItem");
 
@@ -118,9 +118,20 @@ public class MenuServiceImpl implements MenuService {
             menuItem.setAvailable(menuItemDTO.isAvailable());
             menuItem.setImageFileName(menuItemDTO.getImageFileName());
             menuItem.setIngredients(resolveIngredients(menuItemDTO.getIngredients()));
-            menuItemRepository.save(menuItem);
+            MenuItem savedMenuItem = menuItemRepository.save(menuItem);
 
             log.info("MenuItem saved successfully");
+
+            MenuItemDTO savedMenuItemDTO = new MenuItemDTO();
+            savedMenuItemDTO.setItemId(savedMenuItem.getItemId());
+            savedMenuItemDTO.setName(savedMenuItem.getName());
+            savedMenuItemDTO.setCategory(savedMenuItem.getCategory() != null ? savedMenuItem.getCategory().getCategoryName() : null);
+            savedMenuItemDTO.setPrice(savedMenuItem.getPrice());
+            savedMenuItemDTO.setAvailable(savedMenuItem.isAvailable());
+            savedMenuItemDTO.setImageFileName(savedMenuItem.getImageFileName());
+            savedMenuItemDTO.setIngredients(mapIngredientsToNames(savedMenuItem.getIngredients()));
+
+            return savedMenuItemDTO;
 
         }catch (Exception e){
             log.info("Error in method saveMenuItem" + e.getMessage());

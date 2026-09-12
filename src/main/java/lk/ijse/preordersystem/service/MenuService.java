@@ -10,7 +10,7 @@ public interface MenuService {
 
     List<MenuItemDTO> getAllMenuItems();
     List<MenuItemDTO> getMenuItemsExcludingIngredients(List<String> excludingIngredients);
-    void saveMenuItem(MenuItemDTO menuItemDTO);
+    MenuItemDTO saveMenuItem(MenuItemDTO menuItemDTO);
     void updateMenuItem(MenuItemDTO menuItemDTO);
     void deleteMenuItem(Long itemId);
     String saveMenuItemImage(long itemId, MultipartFile file) throws IOException;
