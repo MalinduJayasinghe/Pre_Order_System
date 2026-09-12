@@ -828,6 +828,7 @@
       <div class="field">
         <label for="menuImageFile">Choose a file:</label>
         <input type="file" id="menuImageFile" name="myfile" accept="image/*" />
+        <img id="menuImagePreview" style="display:none; max-width:120px; max-height:120px; margin-top:8px; border-radius:6px; object-fit:cover;" alt="Current image" />
       </div>
       <div class="field">
         <label for="menuName">Name</label>
@@ -1231,36 +1232,65 @@
       "ingredients": currentIngredients
     };
 
+    let file = $("#menuImageFile")[0].files[0];
+
     if (id !== "") {
+
       obj.itemId = Number(id);
-    }
 
-    $.ajax({
-      url:"http://localhost:8080/v1/menu",
-      type: id !== "" ? "PUT" : "POST",
-      contentType: "application/json",
-      headers: authHeaders(),
-      data: JSON.stringify(obj),
+      $.ajax({
+        url: "http://localhost:8080/v1/menu",
+        type: "PUT",
+        contentType: "application/json",
+        headers: authHeaders(),
+        data: JSON.stringify(obj),
 
-      success: function (response) {
+        success: function (response) {
 
-        let saved = response.body;
-        let file = $("#menuImageFile")[0].files[0];
+          let saved = response.body;
 
-        if (file) {
-          uploadMenuItemImage(saved.itemId, file);
+          if (file) {
+            uploadMenuItemImage(saved.itemId, file);
+          }
+
+          toast("Menu item updated", "success");
+          closeModal("menuModal");
+          loadMenu();
+        },
+
+        error: function (response) {
+          console.error("Failed to save menu item:", response);
+          alert("Could not save the menu item. Please try again.");
         }
+      });
 
-        toast(id !== "" ? "Menu item updated" : "Menu item added", "success");
-        closeModal("menuModal");
-        loadMenu();
-      },
+    } else {
 
-      error: function (response) {
-        console.error("Failed to save menu item:", response);
-        alert("Could not save the menu item. Please try again.");
-      }
-    });
+      let formData = new FormData();
+      formData.append("menuItem", new Blob([JSON.stringify(obj)], { type: "application/json" }));
+      if (file) formData.append("imageFile", file);
+
+      $.ajax({
+        url: "http://localhost:8080/v1/menu",
+        type: "POST",
+        headers: authHeaders(),
+        data: formData,
+        processData: false,
+        contentType: false,
+
+        success: function (response) {
+
+          toast("Menu item added", "success");
+          closeModal("menuModal");
+          loadMenu();
+        },
+
+        error: function (response) {
+          console.error("Failed to save menu item:", response);
+          alert("Could not save the menu item. Please try again.");
+        }
+      });
+    }
   });
 
 

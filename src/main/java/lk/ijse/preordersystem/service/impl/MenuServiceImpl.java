@@ -140,7 +140,7 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public void updateMenuItem(MenuItemDTO menuItemDTO) {
+    public MenuItemDTO updateMenuItem(MenuItemDTO menuItemDTO) {
 
         log.info("Execute method updateMenuItem");
 
@@ -148,7 +148,7 @@ public class MenuServiceImpl implements MenuService {
 
             Optional<MenuItem> optionalMenuItem = menuItemRepository.findById(menuItemDTO.getItemId());
             if (optionalMenuItem.isEmpty()){
-                throw new Exception("Item not found");
+                throw new RuntimeException("Item not found");
             }
 
             MenuItem menuItem = optionalMenuItem.get();
@@ -156,13 +156,28 @@ public class MenuServiceImpl implements MenuService {
             menuItem.setCategory(resolveCategory(menuItemDTO.getCategory()));
             menuItem.setPrice(menuItemDTO.getPrice());
             menuItem.setAvailable(menuItemDTO.isAvailable());
-            menuItem.setImageFileName(menuItemDTO.getImageFileName());
+            if (menuItemDTO.getImageFileName() != null) {
+                menuItem.setImageFileName(menuItemDTO.getImageFileName());
+            }
             menuItem.setIngredients(resolveIngredients(menuItemDTO.getIngredients()));
-            menuItemRepository.save(menuItem);
+            MenuItem updatedMenuItem = menuItemRepository.save(menuItem);
+
             log.info("MenuItem updated successfully");
+
+            MenuItemDTO updatedMenuItemDTO = new MenuItemDTO();
+            updatedMenuItemDTO.setItemId(updatedMenuItem.getItemId());
+            updatedMenuItemDTO.setName(updatedMenuItem.getName());
+            updatedMenuItemDTO.setCategory(updatedMenuItem.getCategory() != null ? updatedMenuItem.getCategory().getCategoryName() : null);
+            updatedMenuItemDTO.setPrice(updatedMenuItem.getPrice());
+            updatedMenuItemDTO.setAvailable(updatedMenuItem.isAvailable());
+            updatedMenuItemDTO.setImageFileName(updatedMenuItem.getImageFileName());
+            updatedMenuItemDTO.setIngredients(mapIngredientsToNames(updatedMenuItem.getIngredients()));
+
+            return updatedMenuItemDTO;
 
         }catch (Exception e){
             log.info("Error in method updateMenuItem" + e.getMessage());
+            throw e;
         }
     }
 

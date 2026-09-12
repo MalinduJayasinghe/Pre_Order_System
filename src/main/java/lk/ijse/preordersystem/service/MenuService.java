@@ -11,7 +11,7 @@ public interface MenuService {
     List<MenuItemDTO> getAllMenuItems();
     List<MenuItemDTO> getMenuItemsExcludingIngredients(List<String> excludingIngredients);
     MenuItemDTO saveMenuItem(MenuItemDTO menuItemDTO);
-    void updateMenuItem(MenuItemDTO menuItemDTO);
+    MenuItemDTO updateMenuItem(MenuItemDTO menuItemDTO);
     void deleteMenuItem(Long itemId);
     String saveMenuItemImage(long itemId, MultipartFile file) throws IOException;
 }

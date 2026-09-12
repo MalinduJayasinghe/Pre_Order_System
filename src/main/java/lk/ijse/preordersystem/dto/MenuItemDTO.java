@@ -11,7 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 public class MenuItemDTO {
 
-    private long itemId;
+    private Long itemId;
     private String name;
     private String category;
     private double price;

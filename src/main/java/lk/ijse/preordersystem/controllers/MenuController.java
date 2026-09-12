@@ -5,11 +5,11 @@ import lk.ijse.preordersystem.dto.MenuItemDTO;
 import lk.ijse.preordersystem.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -53,17 +53,14 @@ public class MenuController {
         }
     }
 
-    @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<CommonResponse> updateMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
+    @PutMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse updateMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
+
         log.info("updateMenuItem API was called");
-        try {
-            menuService.updateMenuItem(menuItemDTO);
-            return ResponseEntity.ok(new CommonResponse(0, "Menu Item Updated", "Item updated successfully"));
-        } catch (Exception e) {
-            log.error("Error in updateMenuItem: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new CommonResponse(1, "Failed to update menu item: " + e.getMessage(), null));
-        }
+        MenuItemDTO updatedMenuItem = menuService.updateMenuItem(menuItemDTO);
+
+        log.info("updateMenuItem API successful");
+        return new CommonResponse(0, updatedMenuItem, "Item updated successfully");
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
