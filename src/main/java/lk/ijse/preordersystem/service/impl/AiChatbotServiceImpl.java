@@ -32,13 +32,13 @@ public class AiChatbotServiceImpl implements AiChatbotService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    @Value("${ai.api.url}")
+    @Value("${openrouter.api.url}")
     private String apiUrl;
 
-    @Value("${ai.api.key}")
+    @Value("${openrouter.api.key}")
     private String apiKey;
 
-    @Value("${ai.api.model}")
+    @Value("${openrouter.api.model}")
     private String model;
 
     @Override
@@ -315,6 +315,8 @@ public class AiChatbotServiceImpl implements AiChatbotService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
+        headers.set("HTTP-Referer", "https://pre-order-system.local");
+        headers.set("X-Title", "Pre-Order-System");
 
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
 

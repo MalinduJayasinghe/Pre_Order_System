@@ -203,7 +203,8 @@
 
 <script src="db.js"></script>
 <script>
-  /* ---------------------------- session guard ---------------------------- */
+
+  initSession("CUSTOMER");
 
   document.querySelectorAll(".nav-link[data-tab]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -219,13 +220,18 @@
   let activeCategory = "ALL";
   const cart = new Map(); // itemId -> { item, qty }
 
-  /* ============================ MENU ============================ */
-  // TODO: once MenuController is implemented, replace DB.getMenu() with:
-  //   fetch(API_BASE_URL + "/v1/menu", { headers: authHeaders() })
   function loadMenu() {
-    menuItems = DB.getMenu();
-    buildCategoryTabs();
-    renderMenu();
+    fetch(API_BASE_URL + "/v1/menu", { headers: authHeaders() })
+            .then(response => response.json())
+            .then(response => {
+              menuItems = response.body || [];
+              buildCategoryTabs();
+              renderMenu();
+            })
+            .catch(error => {
+              console.error("Failed to load menu:", error);
+              toast("Could not load the menu", error);
+            });
   }
 
   function buildCategoryTabs() {
@@ -249,8 +255,8 @@
     grid.innerHTML = list.map(item => {
       const inCart = cart.get(item.itemId);
       const qty = inCart ? inCart.qty : 0;
-      const media = item.imageUrl
-              ? `<img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" />`
+      const media = item.imageFileName
+              ? `<img src="${esc(API_BASE_URL + "/images/" + item.imageFileName)}" alt="${esc(item.name)}" />`
               : `<span class="no-image">No photo yet</span>`;
       return `
         <div class="ticket food-card">
@@ -294,7 +300,6 @@
     renderMenu(); renderCart();
   }
 
-  /* ============================ CART ============================ */
   function cartTotal() { let t = 0; cart.forEach(({ item, qty }) => t += item.price * qty); return t; }
   function cartCount() { let n = 0; cart.forEach(({ qty }) => n += qty); return n; }
 
@@ -334,46 +339,86 @@
     if (decrId) removeFromCart(Number(decrId));
   });
 
-  // TODO: once OrderController is implemented, replace DB.createOrder() with:
-  //   fetch(API_BASE_URL + "/v1/order", { method: "POST", headers: authHeaders(), body: JSON.stringify(payload) })
   document.getElementById("placeOrderBtn").addEventListener("click", () => {
     if (cart.size === 0) return;
     const payload = {
       customerId: sessionUser.userId,
       customerName: sessionUser.username,
-      items: Array.from(cart.values()).map(({ item, qty }) => ({ menuItemId: item.itemId, name: item.name, price: item.price, qty })),
+      items: Array.from(cart.values()).map(({ item, qty }) => ({
+        menuItemId: item.itemId,
+        name: item.name,
+        price: item.price,
+        qty
+      })),
       pickupTime: document.getElementById("pickupTime").value,
       notes: document.getElementById("orderNotes").value.trim()
     };
-    const order = DB.createOrder(payload);
-    toast(`Order ${orderCode(order.orderId)} sent to the kitchen`, "success");
-    cart.clear();
-    document.getElementById("orderNotes").value = "";
-    renderMenu(); renderCart();
-    document.querySelector('.nav-link[data-tab="orders"]').click();
+    fetch(API_BASE_URL + "/v1/order", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+      body: JSON.stringify(payload)
+    })
+            .then(response => response.json())
+            .then(response => {
+              const order = response.body;
+              toast(`Order ${orderCode(order.orderId)} sent to the kitchen`, "success");
+              cart.clear();
+              document.getElementById("orderNotes").value = "";
+              renderMenu(); renderCart();
+              document.querySelector('.nav-link[data-tab="orders"]').click();
+            })
+            .catch(error => {
+              console.error("Failed to place order:", error);
+              toast("Could not place the order", "error");
+            });
   });
 
-  /* ============================ MY ORDERS ============================ */
-  // TODO: once OrderController is implemented, replace DB.getOrdersForCustomer()
-  // with: fetch(API_BASE_URL + "/v1/order/customer/" + sessionUser.userId, { headers: authHeaders() })
   function loadMyOrders() {
     const el = document.getElementById("myOrdersList");
-    const orders = DB.getOrdersForCustomer(sessionUser.userId);
-    if (!orders.length) {
-      el.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">No orders yet</div><p>Place your first pre-order from the Menu tab.</p></div>';
-      return;
-    }
-    el.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:16px;">` +
-            orders.map(o => `
-        <div class="ticket order-ticket">
-          <div class="order-ticket-head">
-            <div><div class="ticket-code">${orderCode(o.orderId)}</div><span style="font-size:11px; color:var(--ink-soft);">${fmtDate(o.placedAt)}</span></div>
-            <span class="stamp stamp-${o.status.toLowerCase()}">${o.status}</span>
-          </div>
-          <div class="order-ticket-items">${o.items.map(i => `<div><span class="qty">${i.qty}×</span>${esc(i.name)}</div>`).join("")}</div>
-          <div class="order-ticket-meta"><span>Pickup ${esc(o.pickupTime)}</span><span>${money(o.total)}</span></div>
-        </div>`).join("") + `</div>`;
+    fetch(API_BASE_URL + "/v1/order/customer/" + sessionUser.userId, { headers: authHeaders() })
+            .then(response => response.json())
+            .then(response => {
+              const orders = response.body || [];
+              if (!orders.length) {
+                el.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">No orders yet</div><p>Place your first pre-order from the Menu tab.</p></div>';
+                return;
+              }
+              el.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:16px;">` +
+                      orders.map(o => `
+            <div class="ticket order-ticket">
+              <div class="order-ticket-head">
+                <div><div class="ticket-code">${orderCode(o.orderId)}</div><span style="font-size:11px; color:var(--ink-soft);">${fmtDate(o.placedAt)}</span></div>
+                <span class="stamp stamp-${o.status.toLowerCase()}">${o.status}</span>
+              </div>
+              <div class="order-ticket-items">${o.items.map(i => `<div><span class="qty">${i.qty}×</span>${esc(i.name)}</div>`).join("")}</div>
+              <div class="order-ticket-meta"><span>Pickup ${esc(o.pickupTime)}</span><span>${money(o.total)}</span></div>
+            </div>`).join("") + `</div>`;
+            })
+            .catch(error => {
+              console.error("Failed to load orders:", error);
+              toast("Could not load your orders", "error");
+            });
   }
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+
+    let refreshToken = localStorage.getItem("refreshToken");
+
+    if (refreshToken) {
+      fetch(API_BASE_URL + "/v1/login/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refreshToken })
+      });
+    }
+
+    localStorage.removeItem("JWT");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("username");
+    localStorage.removeItem("refreshToken");
+    window.location.href = "index.html";
+  });
 
   loadMenu();
 </script>
