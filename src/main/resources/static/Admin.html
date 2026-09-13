@@ -1120,6 +1120,12 @@
     $("#menuAvailable").prop("checked", item ? item.available : true);
     $("#menuImageFile").val("");
 
+    if (item && item.imageFileName) {
+      $("#menuImagePreview").attr("src", "http://localhost:8080/images/" + item.imageFileName).show();
+    } else {
+      $("#menuImagePreview").hide().attr("src", "");
+    }
+
     currentIngredients = (item && item.ingredients) ? item.ingredients.slice() : [];
     renderIngredientTags();
 

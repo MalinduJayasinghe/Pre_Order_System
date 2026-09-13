@@ -828,6 +828,7 @@
       <div class="field">
         <label for="menuImageFile">Choose a file:</label>
         <input type="file" id="menuImageFile" name="myfile" accept="image/*" />
+        <img id="menuImagePreview" style="display:none; max-width:120px; max-height:120px; margin-top:8px; border-radius:6px; object-fit:cover;" alt="Current image" />
       </div>
       <div class="field">
         <label for="menuName">Name</label>
@@ -1118,6 +1119,12 @@
     $("#menuPrice").val(item ? item.price : "");
     $("#menuAvailable").prop("checked", item ? item.available : true);
     $("#menuImageFile").val("");
+
+    if (item && item.imageFileName) {
+      $("#menuImagePreview").attr("src", "http://localhost:8080/images/" + item.imageFileName).show();
+    } else {
+      $("#menuImagePreview").hide().attr("src", "");
+    }
 
     currentIngredients = (item && item.ingredients) ? item.ingredients.slice() : [];
     renderIngredientTags();

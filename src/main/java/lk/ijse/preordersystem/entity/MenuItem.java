@@ -30,7 +30,12 @@ public class MenuItem {
 
     @ManyToMany(
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
+            fetch = FetchType.EAGER
+    )
+    @JoinTable(
+            name = "menu_item_ingredient",
+            joinColumns = @JoinColumn(name = "item_id", referencedColumnName = "itemId"),
+            inverseJoinColumns = @JoinColumn(name = "ingredient_id", referencedColumnName = "ingredientId")
     )
     private Set<Ingredient> ingredients = new HashSet<>();
 }
