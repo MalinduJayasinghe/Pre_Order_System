@@ -56,60 +56,16 @@ public class AiToolExecutor {
                 continue;
             }
 
-            List<String> itemIngredients = item.getIngredients() != null ? item.getIngredients() : new ArrayList<>();
-
-            if (includeIngredients != null && !includeIngredients.isEmpty()) {
-
-                boolean hasAllIncluded = true;
-                for (String required : includeIngredients) {
-                    if (!containsIngredientIgnoreCase(itemIngredients, required)) {
-                        hasAllIncluded = false;
-                        break;
-                    }
-                }
-
-                if (!hasAllIncluded) {
-                    continue;
-                }
-            }
-
-            if (excludeIngredients != null && !excludeIngredients.isEmpty()) {
-
-                boolean hasExcluded = false;
-                for (String excluded : excludeIngredients) {
-                    if (containsIngredientIgnoreCase(itemIngredients, excluded)) {
-                        hasExcluded = true;
-                        break;
-                    }
-                }
-
-                if (hasExcluded) {
-                    continue;
-                }
-            }
-
             Map<String, Object> resultItem = new LinkedHashMap<>();
             resultItem.put("itemId", item.getItemId());
             resultItem.put("name", item.getName());
             resultItem.put("category", item.getCategory());
             resultItem.put("price", item.getPrice());
-            resultItem.put("ingredients", itemIngredients);
 
             results.add(resultItem);
         }
 
         return results;
-    }
-
-    private boolean containsIngredientIgnoreCase(List<String> ingredients, String target) {
-
-        for (String ingredient : ingredients) {
-            if (ingredient.equalsIgnoreCase(target.trim())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public Map<String, Object> getOrderStatus(long orderId, long requestingUserId, String requestingRole) {
