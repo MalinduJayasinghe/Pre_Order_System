@@ -257,7 +257,9 @@ function initNotificationBell() {
       background: #1C2E36; color: #fff; padding: 12px 14px; font-weight: 600; font-size: 14px;
     }
     #notifBellList { flex: 1; overflow-y: auto; background: #FAFAF8; }
-    .notif-item { padding: 10px 14px; border-bottom: 1px solid #EFEFE9; font-size: 13px; color: #1C2E36; cursor: pointer; }
+    .notif-item { position: relative; padding: 10px 34px 10px 14px; border-bottom: 1px solid #EFEFE9; font-size: 13px; color: #1C2E36; cursor: pointer; }
+    .notif-item-close { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border: none; background: transparent; color: #6B5F4B; font-size: 14px; line-height: 1; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .notif-item-close:hover { background: #EFEFE9; color: #1C2E36; }    
     .notif-item:last-child { border-bottom: none; }
     .notif-item.unread { background: #FBEBCE; font-weight: 600; }
     .notif-item .notif-time { display: block; font-size: 11px; color: #6B5F4B; font-weight: 400; margin-top: 3px; }
@@ -297,6 +299,7 @@ function initNotificationBell() {
 
         listEl.innerHTML = notifications.map(n => `
       <div class="notif-item ${n.read ? "" : "unread"}" data-notif-id="${n.notificationId}">
+        <button class="notif-item-close" data-notif-delete="${n.notificationId}" title="Dismiss">✕</button>
         ${esc(n.message)}
         <span class="notif-time">${fmtDate(n.createdAt)}</span>
       </div>
@@ -312,6 +315,22 @@ function initNotificationBell() {
     }
 
     listEl.addEventListener("click", function (event) {
+
+        let deleteId = event.target.closest("[data-notif-delete]")?.dataset.notifDelete;
+
+        if (deleteId) {
+
+            fetch(API_BASE_URL + "/v1/notification/" + deleteId, {
+                method: "DELETE",
+                headers: authHeaders()
+            })
+                .then(() => {
+                    loadNotifications();
+                })
+                .catch(error => console.error("Failed to delete notification:", error));
+
+            return;
+        }
 
         let item = event.target.closest("[data-notif-id]");
         if (!item || !item.classList.contains("unread")) {

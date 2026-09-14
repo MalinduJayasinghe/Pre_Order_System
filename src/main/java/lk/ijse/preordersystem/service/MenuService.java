@@ -9,7 +9,6 @@ import java.util.List;
 public interface MenuService {
 
     List<MenuItemDTO> getAllMenuItems();
-    List<MenuItemDTO> getMenuItemsExcludingIngredients(List<String> excludingIngredients);
     MenuItemDTO saveMenuItem(MenuItemDTO menuItemDTO);
     MenuItemDTO updateMenuItem(MenuItemDTO menuItemDTO);
     void deleteMenuItem(Long itemId);

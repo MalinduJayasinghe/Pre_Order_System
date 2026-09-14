@@ -2,10 +2,8 @@ package lk.ijse.preordersystem.service.impl;
 
 import lk.ijse.preordersystem.dto.MenuItemDTO;
 import lk.ijse.preordersystem.entity.Category;
-import lk.ijse.preordersystem.entity.Ingredient;
 import lk.ijse.preordersystem.entity.MenuItem;
 import lk.ijse.preordersystem.repository.CategoryRepository;
-import lk.ijse.preordersystem.repository.IngredientRepository;
 import lk.ijse.preordersystem.repository.MenuItemRepository;
 import lk.ijse.preordersystem.service.MenuService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +26,6 @@ import java.util.*;
 public class MenuServiceImpl implements MenuService {
 
     private final MenuItemRepository menuItemRepository;
-    private final IngredientRepository ingredientRepository;
     private final CategoryRepository categoryRepository;
 
     private static final String UPLOAD_DIR = "uploads/menu-images";
@@ -50,7 +47,6 @@ public class MenuServiceImpl implements MenuService {
                 menuItemDTO.setPrice(menuItem.getPrice());
                 menuItemDTO.setAvailable(menuItem.isAvailable());
                 menuItemDTO.setImageFileName(menuItem.getImageFileName());
-                menuItemDTO.setIngredients(mapIngredientsToNames(menuItem.getIngredients()));
 
                 responseList.add(menuItemDTO);
             }
@@ -74,13 +70,7 @@ public class MenuServiceImpl implements MenuService {
                 return getAllMenuItems();
             }
 
-            List<String> excludeIngredients = new ArrayList<>();
-            for (String ingredient : excludingIngredients) {
-
-                excludeIngredients.add(ingredient.toLowerCase().trim());
-            }
-
-            List<MenuItem> menuItemList = menuItemRepository.findAllExcludingIngredients(excludeIngredients);
+            List<MenuItem> menuItemList = menuItemRepository.findAll();
             List<MenuItemDTO> responseList = new ArrayList<>();
 
             for (MenuItem menuItem : menuItemList) {
@@ -92,7 +82,6 @@ public class MenuServiceImpl implements MenuService {
                 menuItemDTO.setPrice(menuItem.getPrice());
                 menuItemDTO.setAvailable(menuItem.isAvailable());
                 menuItemDTO.setImageFileName(menuItem.getImageFileName());
-                menuItemDTO.setIngredients(mapIngredientsToNames(menuItem.getIngredients()));
 
                 responseList.add(menuItemDTO);
             }
@@ -119,7 +108,6 @@ public class MenuServiceImpl implements MenuService {
             menuItem.setPrice(menuItemDTO.getPrice());
             menuItem.setAvailable(menuItemDTO.isAvailable());
             menuItem.setImageFileName(menuItemDTO.getImageFileName());
-            menuItem.setIngredients(resolveIngredients(menuItemDTO.getIngredients()));
             MenuItem savedMenuItem = menuItemRepository.save(menuItem);
 
             log.info("MenuItem saved successfully");
@@ -131,7 +119,6 @@ public class MenuServiceImpl implements MenuService {
             savedMenuItemDTO.setPrice(savedMenuItem.getPrice());
             savedMenuItemDTO.setAvailable(savedMenuItem.isAvailable());
             savedMenuItemDTO.setImageFileName(savedMenuItem.getImageFileName());
-            savedMenuItemDTO.setIngredients(mapIngredientsToNames(savedMenuItem.getIngredients()));
 
             return savedMenuItemDTO;
 
@@ -161,7 +148,6 @@ public class MenuServiceImpl implements MenuService {
             if (menuItemDTO.getImageFileName() != null) {
                 menuItem.setImageFileName(menuItemDTO.getImageFileName());
             }
-            menuItem.setIngredients(resolveIngredients(menuItemDTO.getIngredients()));
             MenuItem updatedMenuItem = menuItemRepository.save(menuItem);
 
             log.info("MenuItem updated successfully");
@@ -173,7 +159,6 @@ public class MenuServiceImpl implements MenuService {
             updatedMenuItemDTO.setPrice(updatedMenuItem.getPrice());
             updatedMenuItemDTO.setAvailable(updatedMenuItem.isAvailable());
             updatedMenuItemDTO.setImageFileName(updatedMenuItem.getImageFileName());
-            updatedMenuItemDTO.setIngredients(mapIngredientsToNames(updatedMenuItem.getIngredients()));
 
             return updatedMenuItemDTO;
 
@@ -245,64 +230,5 @@ public class MenuServiceImpl implements MenuService {
         Category category = new Category();
         category.setCategoryName(cleanName);
         return categoryRepository.save(category);
-    }
-
-    private Set<Ingredient> resolveIngredients(List<String> ingredientEntries) {
-
-        log.info("Execute method resolveIngredients");
-
-        Set<Ingredient> ingredients = new HashSet<>();
-
-        if (ingredientEntries == null || ingredientEntries.isEmpty()) {
-            return ingredients;
-        }
-
-        List<String> ingredientNames = new ArrayList<>();
-        for (String entry : ingredientEntries) {
-
-            if (entry == null) {
-                continue;
-            }
-
-            String[] splitEntry = entry.split(",");
-            for (String namePart : splitEntry) {
-
-                String ingredientName = namePart.trim().toLowerCase();
-                if (!ingredientName.isEmpty() && !ingredientNames.contains(ingredientName)) {
-                    ingredientNames.add(ingredientName);
-                }
-            }
-        }
-
-        for (String ingredientName : ingredientNames) {
-
-            Optional<Ingredient> existingIngredient = ingredientRepository.findByIngredientName(ingredientName);
-
-            if (existingIngredient.isPresent()) {
-                ingredients.add(existingIngredient.get());
-            } else {
-
-                Ingredient newIngredient = new Ingredient();
-                newIngredient.setIngredientName(ingredientName);
-                ingredients.add(newIngredient);
-            }
-        }
-
-        return ingredients;
-    }
-
-    private List<String> mapIngredientsToNames(Set<Ingredient> ingredients) {
-
-        List<String> ingredientNames = new ArrayList<>();
-
-        if (ingredients == null || ingredients.isEmpty()) {
-            return ingredientNames;
-        }
-
-        for (Ingredient ingredient : ingredients) {
-            ingredientNames.add(ingredient.getIngredientName());
-        }
-
-        return ingredientNames;
     }
 }

@@ -9,4 +9,5 @@ public interface NotificationService {
     void createNotification(long userId, String message);
     List<NotificationDTO> getNotificationsForUser(long userId);
     void markAsRead(Long notificationId);
+    void deleteNotification(Long notificationId);
 }

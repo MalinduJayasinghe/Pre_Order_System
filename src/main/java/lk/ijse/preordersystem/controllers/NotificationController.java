@@ -37,4 +37,14 @@ public class NotificationController {
         log.info("markAsRead API successful");
         return new CommonResponse(0, "Notification Read", "Notification marked as read");
     }
+
+    @DeleteMapping(value = "/{notificationId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse deleteNotification(@PathVariable Long notificationId) {
+
+        log.info("deleteNotification API was called");
+        notificationService.deleteNotification(notificationId);
+
+        log.info("deleteNotification API successful");
+        return new CommonResponse(0, "Notification Deleted", "Notification deleted successfully");
+    }
 }

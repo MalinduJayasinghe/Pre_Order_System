@@ -5,9 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -28,14 +25,4 @@ public class MenuItem {
     private boolean available;
     private String imageFileName;
 
-    @ManyToMany(
-            cascade = CascadeType.ALL,
-            fetch = FetchType.EAGER
-    )
-    @JoinTable(
-            name = "menu_item_ingredient",
-            joinColumns = @JoinColumn(name = "item_id", referencedColumnName = "itemId"),
-            inverseJoinColumns = @JoinColumn(name = "ingredient_id", referencedColumnName = "ingredientId")
-    )
-    private Set<Ingredient> ingredients = new HashSet<>();
 }

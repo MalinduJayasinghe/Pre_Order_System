@@ -36,7 +36,6 @@ D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\entity\ChatbotQueryLog.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\entity\Discount.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\entity\FavoriteMenuItem.java
-D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\entity\Ingredient.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\entity\MenuItem.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\entity\MenuItemReview.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\entity\Notification.java
@@ -56,7 +55,6 @@ D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\repository\ChatbotQueryLogRepository.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\repository\DiscountRepository.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\repository\FavoriteMenuItemRepository.java
-D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\repository\IngredientRepository.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\repository\MenuItemRepository.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\repository\MenuItemReviewRepository.java
 D:\IJSE Notes\GDSE 75\Advanced API Development\Pre-Order-System\src\main\java\lk\ijse\preordersystem\repository\NotificationRepository.java

@@ -71,14 +71,6 @@ public class MenuController {
         return new CommonResponse(0, allMenuItems, "MenuItems called");
     }
 
-    @GetMapping(value = "/filter", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse filterMenuItems(@RequestParam(required = false) List<String> excludedIngredients) {
-        log.info("filterMenuItems API was called");
-        List<MenuItemDTO> allMenuItems = menuService.getMenuItemsExcludingIngredients(excludedIngredients);
-        log.info("filterMenuItems API successful");
-        return new CommonResponse(0, allMenuItems, "Excluded MenuItems filtered");
-    }
-
     @DeleteMapping(value = "/{itemId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse deleteMenuItem(@PathVariable Long itemId) {
         log.info("deleteMenuItem API was called");

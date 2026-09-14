@@ -102,4 +102,19 @@ public class NotificationServiceImpl implements NotificationService {
             throw e;
         }
     }
+
+    @Override
+    public void deleteNotification(Long notificationId) {
+
+        log.info("Execute method deleteNotification");
+
+        try {
+            notificationRepository.deleteById(notificationId);
+            log.info("Notification deleted successfully");
+
+        }catch (Exception e){
+            log.error("Error in method deleteNotification" + e.getMessage());
+            throw e;
+        }
+    }
 }

@@ -11,9 +11,5 @@ import java.util.List;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
-    @Query("SELECT m FROM MenuItem m WHERE m.itemId NOT IN (" +
-            "SELECT mi.itemId FROM MenuItem mi JOIN mi.ingredients i WHERE i.ingredientName IN :excludedIngredients)")
-    List<MenuItem> findAllExcludingIngredients(@Param("excludedIngredients") List<String> excludedIngredients);
-
     List<MenuItem> findByCategory_CategoryName(String categoryName);
 }
