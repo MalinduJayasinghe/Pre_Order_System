@@ -60,42 +60,6 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public List<MenuItemDTO> getMenuItemsExcludingIngredients(List<String> excludingIngredients) {
-
-        log.info("Execute method getMenuItemsExcludingIngredients");
-
-        try {
-
-            if(excludingIngredients==null || excludingIngredients.isEmpty()){
-                return getAllMenuItems();
-            }
-
-            List<MenuItem> menuItemList = menuItemRepository.findAll();
-            List<MenuItemDTO> responseList = new ArrayList<>();
-
-            for (MenuItem menuItem : menuItemList) {
-
-                MenuItemDTO menuItemDTO = new MenuItemDTO();
-                menuItemDTO.setItemId(menuItem.getItemId());
-                menuItemDTO.setName(menuItem.getName());
-                menuItemDTO.setCategory(menuItem.getCategory() != null ? menuItem.getCategory().getCategoryName() : null);
-                menuItemDTO.setPrice(menuItem.getPrice());
-                menuItemDTO.setAvailable(menuItem.isAvailable());
-                menuItemDTO.setImageFileName(menuItem.getImageFileName());
-
-                responseList.add(menuItemDTO);
-            }
-
-            log.info("MenuItems retrieved successfully");
-            return responseList;
-
-        }catch (Exception e){
-            log.info("Error in method getMenuItemsExcludingIngredients" + e.getMessage());
-            throw e;
-        }
-    }
-
-    @Override
     public MenuItemDTO saveMenuItem(MenuItemDTO menuItemDTO) {
 
         log.info("Execute method saveMenuItem");

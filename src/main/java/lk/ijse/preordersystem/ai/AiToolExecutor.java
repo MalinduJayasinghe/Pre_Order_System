@@ -26,8 +26,6 @@ public class AiToolExecutor {
 
     public List<Map<String, Object>> searchMenuItems(
             String categoryName,
-            List<String> includeIngredients,
-            List<String> excludeIngredients,
             Double minPrice,
             Double maxPrice) {
 

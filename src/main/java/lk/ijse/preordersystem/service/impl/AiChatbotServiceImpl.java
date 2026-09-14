@@ -123,8 +123,6 @@ public class AiChatbotServiceImpl implements AiChatbotService {
             case "searchMenuItems":
                 return aiToolExecutor.searchMenuItems(
                         (String) args.get("categoryName"),
-                        (List<String>) args.get("includeIngredients"),
-                        (List<String>) args.get("excludeIngredients"),
                         toDoubleOrNull(args.get("minPrice")),
                         toDoubleOrNull(args.get("maxPrice"))
                 );
