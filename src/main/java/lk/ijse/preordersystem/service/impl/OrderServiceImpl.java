@@ -8,12 +8,14 @@ import lk.ijse.preordersystem.repository.DiscountRepository;
 import lk.ijse.preordersystem.repository.OrderRepository;
 import lk.ijse.preordersystem.repository.OrderStatusHistoryRepository;
 import lk.ijse.preordersystem.repository.PaymentRepository;
+import lk.ijse.preordersystem.repository.UserRepository;
 import lk.ijse.preordersystem.service.NotificationService;
 import lk.ijse.preordersystem.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +31,7 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentRepository paymentRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Override
     public OrderDTO placeOrder(OrderDTO orderDTO) {
@@ -66,16 +69,24 @@ public class OrderServiceImpl implements OrderService {
             order.setOrderItems(orderItems);
 
             double total = subtotal;
+            Discount appliedDiscount = null;
 
             if (orderDTO.getDiscountCode() != null && !orderDTO.getDiscountCode().trim().isEmpty()) {
 
                 Optional<Discount> optionalDiscount = discountRepository.findByCodeIgnoreCase(orderDTO.getDiscountCode().trim());
 
                 if (optionalDiscount.isPresent() && optionalDiscount.get().isActive()) {
-                    Discount discount = optionalDiscount.get();
-                    order.setDiscount(discount);
-                    total = subtotal - (subtotal * discount.getPercentage() / 100.0);
+                    appliedDiscount = optionalDiscount.get();
                 }
+            }
+
+            if (appliedDiscount == null) {
+                appliedDiscount = findBestAutomaticDiscount(orderItems);
+            }
+
+            if (appliedDiscount != null) {
+                order.setDiscount(appliedDiscount);
+                total = subtotal - (subtotal * appliedDiscount.getPercentage() / 100.0);
             }
 
             order.setTotal(total);
@@ -95,6 +106,8 @@ public class OrderServiceImpl implements OrderService {
                 notificationService.createNotification(savedOrder.getCustomerId(),
                         "Your order " + orderCode(savedOrder.getOrderId()) + " has been placed and is pending confirmation.");
             }
+
+            sendOrderReceiptSms(savedOrder);
 
             log.info("Order placed successfully");
             return mapToDto(savedOrder);
@@ -193,6 +206,66 @@ public class OrderServiceImpl implements OrderService {
             log.info("Error in method updateOrderStatus" + e.getMessage());
             throw e;
         }
+    }
+
+    private Discount findBestAutomaticDiscount(List<OrderItem> orderItems) {
+
+        Discount best = null;
+        LocalDate today = LocalDate.now();
+
+        for (Discount discount : discountRepository.findByActiveTrue()) {
+
+            boolean dateMatches = discount.getDiscountDate() != null && discount.getDiscountDate().equals(today);
+            boolean itemMatches = false;
+
+            if (discount.getApplicableItems() != null && !discount.getApplicableItems().isEmpty()) {
+
+                for (OrderItem orderItem : orderItems) {
+                    for (MenuItem applicableItem : discount.getApplicableItems()) {
+                        if (applicableItem.getItemId() == orderItem.getMenuItemId()) {
+                            itemMatches = true;
+                            break;
+                        }
+                    }
+                    if (itemMatches) {
+                        break;
+                    }
+                }
+            }
+
+            if ((dateMatches || itemMatches) && (best == null || discount.getPercentage() > best.getPercentage())) {
+                best = discount;
+            }
+        }
+
+        return best;
+    }
+
+    private void sendOrderReceiptSms(Order order) {
+
+        if (order.getCustomerId() <= 0) {
+            return;
+        }
+
+        Optional<User> optionalUser = userRepository.findById(order.getCustomerId());
+        if (optionalUser.isEmpty() || optionalUser.get().getContact() == null || optionalUser.get().getContact().trim().isEmpty()) {
+            return;
+        }
+
+        String contact = optionalUser.get().getContact();
+
+        StringBuilder receipt = new StringBuilder();
+        receipt.append("The Pass - Order ").append(orderCode(order.getOrderId())).append(" Receipt | ");
+
+        for (OrderItem item : order.getOrderItems()) {
+            receipt.append(item.getQty()).append("x ").append(item.getName())
+                    .append(" (Rs.").append(String.format("%.2f", item.getPrice() * item.getQty())).append(") | ");
+        }
+
+        receipt.append("Total: Rs.").append(String.format("%.2f", order.getTotal())).append(" | ");
+        receipt.append("Pickup: ").append(order.getPickupTime());
+
+        log.info("[SMS SIMULATION] To {}: {}", contact, receipt);
     }
 
     private void recordStatusHistory(Order order, String status, String changedBy) {

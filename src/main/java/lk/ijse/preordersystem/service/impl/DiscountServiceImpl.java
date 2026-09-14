@@ -2,15 +2,18 @@ package lk.ijse.preordersystem.service.impl;
 
 import lk.ijse.preordersystem.dto.DiscountDTO;
 import lk.ijse.preordersystem.entity.Discount;
+import lk.ijse.preordersystem.entity.MenuItem;
 import lk.ijse.preordersystem.repository.DiscountRepository;
+import lk.ijse.preordersystem.repository.MenuItemRepository;
 import lk.ijse.preordersystem.service.DiscountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +21,7 @@ import java.util.Optional;
 public class DiscountServiceImpl implements DiscountService {
 
     private final DiscountRepository discountRepository;
+    private final MenuItemRepository menuItemRepository;
 
     @Override
     public List<DiscountDTO> getAllDiscounts() {
@@ -53,6 +57,8 @@ public class DiscountServiceImpl implements DiscountService {
             discount.setCode(discountDTO.getCode().trim().toUpperCase());
             discount.setPercentage(discountDTO.getPercentage());
             discount.setActive(discountDTO.isActive());
+            discount.setDiscountDate(discountDTO.getDiscountDate());
+            discount.setApplicableItems(resolveApplicableItems(discountDTO.getApplicableItemIds()));
 
             Discount savedDiscount = discountRepository.save(discount);
 
@@ -61,6 +67,33 @@ public class DiscountServiceImpl implements DiscountService {
 
         }catch (Exception e){
             log.error("Error in method saveDiscount" + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public DiscountDTO updateDiscount(DiscountDTO discountDTO) {
+
+        log.info("Execute method updateDiscount");
+
+        try {
+
+            Discount discount = discountRepository.findById(discountDTO.getDiscountId())
+                    .orElseThrow(() -> new RuntimeException("Discount not found"));
+
+            discount.setCode(discountDTO.getCode().trim().toUpperCase());
+            discount.setPercentage(discountDTO.getPercentage());
+            discount.setActive(discountDTO.isActive());
+            discount.setDiscountDate(discountDTO.getDiscountDate());
+            discount.setApplicableItems(resolveApplicableItems(discountDTO.getApplicableItemIds()));
+
+            Discount updatedDiscount = discountRepository.save(discount);
+
+            log.info("Discount updated successfully");
+            return mapToDto(updatedDiscount);
+
+        }catch (Exception e){
+            log.error("Error in method updateDiscount" + e.getMessage());
             throw e;
         }
     }
@@ -87,19 +120,29 @@ public class DiscountServiceImpl implements DiscountService {
 
         try {
 
-            Optional<Discount> optionalDiscount = discountRepository.findByCodeIgnoreCase(code);
-
-            if (optionalDiscount.isEmpty() || !optionalDiscount.get().isActive()) {
-                throw new RuntimeException("Invalid or inactive discount code");
-            }
+            Discount discount = discountRepository.findByCodeIgnoreCase(code)
+                    .filter(Discount::isActive)
+                    .orElseThrow(() -> new RuntimeException("Invalid or inactive discount code"));
 
             log.info("Discount code validated successfully");
-            return mapToDto(optionalDiscount.get());
+            return mapToDto(discount);
 
         }catch (Exception e){
             log.error("Error in method validateDiscountCode" + e.getMessage());
             throw e;
         }
+    }
+
+    private Set<MenuItem> resolveApplicableItems(List<Long> itemIds) {
+
+        Set<MenuItem> items = new HashSet<>();
+
+        if (itemIds == null || itemIds.isEmpty()) {
+            return items;
+        }
+
+        items.addAll(menuItemRepository.findAllById(itemIds));
+        return items;
     }
 
     private DiscountDTO mapToDto(Discount discount) {
@@ -109,6 +152,20 @@ public class DiscountServiceImpl implements DiscountService {
         discountDTO.setCode(discount.getCode());
         discountDTO.setPercentage(discount.getPercentage());
         discountDTO.setActive(discount.isActive());
+        discountDTO.setDiscountDate(discount.getDiscountDate());
+
+        List<Long> itemIds = new ArrayList<>();
+        List<String> itemNames = new ArrayList<>();
+
+        if (discount.getApplicableItems() != null) {
+            for (MenuItem item : discount.getApplicableItems()) {
+                itemIds.add(item.getItemId());
+                itemNames.add(item.getName());
+            }
+        }
+
+        discountDTO.setApplicableItemIds(itemIds);
+        discountDTO.setApplicableItemNames(itemNames);
 
         return discountDTO;
     }

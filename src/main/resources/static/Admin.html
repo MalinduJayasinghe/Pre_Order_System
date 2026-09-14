@@ -686,6 +686,7 @@
     <button class="nav-link" data-tab="menu"><span class="ico">02</span> Menu Management</button>
     <button class="nav-link" data-tab="orders"><span class="ico">03</span> All Orders</button>
     <button class="nav-link" data-tab="staff"><span class="ico">04</span> Staff &amp; Accounts</button>
+    <button class="nav-link" data-tab="discounts"><span class="ico">05</span> Discounts</button>
 
     <div class="sidebar-foot">
       <div class="user-chip">
@@ -809,6 +810,32 @@
             </tr>
             </thead>
             <tbody id="usersBody"><tr><td colspan="6" class="loading-row">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-discounts">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Discounts</div>
+        </div>
+        <button class="btn btn-primary" id="addDiscountBtn">+ Add Discount</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body table-wrap">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Name / Code</th>
+              <th>Percentage</th>
+              <th>Applies To</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+            </thead>
+            <tbody id="discountsBody"><tr><td colspan="5" class="loading-row">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -943,6 +970,45 @@
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" data-close="userModal">Cancel</button>
         <button type="submit" class="btn btn-primary">Save Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="discountModal">
+  <div class="ticket modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="discountModalTitle">Add Discount</span>
+      <button class="modal-close" data-close="discountModal">✕</button>
+    </div>
+    <form id="discountForm">
+      <input type="hidden" id="discountId" />
+      <div class="field">
+        <label for="discountCode">Name / Code</label>
+        <input type="text" id="discountCode" required />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="discountPercentage">Percentage (%)</label>
+          <input type="number" id="discountPercentage" step="0.01" min="0" max="100" required />
+        </div>
+        <div class="field">
+          <label for="discountDate">Applies on date (optional)</label>
+          <input type="date" id="discountDate" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Applies to items (optional)</label>
+        <div id="discountItemsList" style="max-height:160px; overflow-y:auto; border:1px solid #D9CDAE; border-radius:var(--radius); padding:8px 12px; background:#fff;"></div>
+        <div class="field-hint">Leave both date and items empty for a manual-code-only discount. If either is set, it applies automatically to matching orders.</div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="discountActive" checked />
+        <label for="discountActive" style="margin:0;">Active</label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="discountModal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Discount</button>
       </div>
     </form>
   </div>
@@ -1168,6 +1234,8 @@
       loadAllOrders();
     } else if (tab === "staff") {
       loadUsers();
+    } else if (tab === "discounts") {
+      loadDiscounts();
     }
   });
 
@@ -1324,9 +1392,10 @@
 
   $("#menuIngredientInput").keydown(function (event) {
 
-    if (event.key === "Enter") {
+    if (event.key === "Enter" || event.keyCode === 13) {
 
       event.preventDefault();
+      event.stopPropagation();
 
       let rawValue = $(this).val();
 
@@ -1336,6 +1405,193 @@
 
       $(this).val("");
     }
+  });
+
+  let discountList = [];
+
+  function loadDiscounts() {
+
+    $.ajax({
+      url: "http://localhost:8080/v1/discount",
+      type: "GET",
+      headers: authHeaders(),
+
+      success: function (response) {
+        discountList = response.body;
+        renderDiscounts();
+      },
+
+      error: function (response) {
+        console.error("Failed to load discounts:", response);
+        alert("Could not load discounts. Please try again.");
+      }
+    });
+  }
+
+  function renderDiscounts() {
+
+    let body = $("#discountsBody");
+
+    if (!discountList || discountList.length === 0) {
+      body.html("<tr><td colspan='5' class='empty-state'>No discounts yet</td></tr>");
+      return;
+    }
+
+    let html = "";
+    for (let i = 0; i < discountList.length; i++) {
+
+      let d = discountList[i];
+      let appliesTo = [];
+
+      if (d.discountDate) {
+        appliesTo.push("<span class='stamp stamp-preparing'>" + esc(d.discountDate) + "</span>");
+      }
+      if (d.applicableItemNames && d.applicableItemNames.length) {
+        appliesTo.push("<span class='cell-muted'>" + esc(d.applicableItemNames.join(", ")) + "</span>");
+      }
+
+      let appliesToHtml = appliesTo.length ? appliesTo.join(" ") : "<span class='cell-muted'>Manual code only</span>";
+      let statusBadge = d.active ? "<span class='stamp stamp-ready'>Active</span>" : "<span class='stamp stamp-cancelled'>Inactive</span>";
+
+      html += "<tr>";
+      html += "<td><strong>" + esc(d.code) + "</strong></td>";
+      html += "<td class='cell-mono'>" + d.percentage + "%</td>";
+      html += "<td>" + appliesToHtml + "</td>";
+      html += "<td>" + statusBadge + "</td>";
+      html += "<td class='cell-actions'>";
+      html += "<button class='icon-btn' data-edit-discount='" + d.discountId + "' title='Edit'>✎</button>";
+      html += "<button class='icon-btn' data-delete-discount='" + d.discountId + "' title='Delete'>🗑</button>";
+      html += "</td>";
+      html += "</tr>";
+    }
+
+    body.html(html);
+  }
+
+  function populateDiscountItemCheckboxes(selectedIds) {
+
+    let wrap = $("#discountItemsList");
+    let html = "";
+
+    for (let i = 0; i < menuItemList.length; i++) {
+
+      let item = menuItemList[i];
+      let checked = selectedIds && selectedIds.indexOf(item.itemId) !== -1 ? "checked" : "";
+
+      html += "<label style='display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px; font-weight:400;'>";
+      html += "<input type='checkbox' value='" + item.itemId + "' " + checked + " style='width:auto;' /> " + esc(item.name);
+      html += "</label>";
+    }
+
+    wrap.html(html || "<div class='cell-muted' style='font-size:13px;'>No menu items yet</div>");
+  }
+
+  function openDiscountModal(discount) {
+
+    $("#discountModalTitle").text(discount ? "Edit Discount" : "Add Discount");
+    $("#discountId").val(discount ? discount.discountId : "");
+    $("#discountCode").val(discount ? discount.code : "");
+    $("#discountPercentage").val(discount ? discount.percentage : "");
+    $("#discountActive").prop("checked", discount ? discount.active : true);
+    $("#discountDate").val(discount && discount.discountDate ? discount.discountDate : "");
+
+    populateDiscountItemCheckboxes(discount ? discount.applicableItemIds : []);
+
+    openModal("discountModal");
+  }
+
+  $("#addDiscountBtn").click(function () {
+    openDiscountModal(null);
+  });
+
+  $("#discountsBody").on("click", "[data-edit-discount]", function () {
+
+    let discountId = $(this).data("edit-discount");
+    let discount = null;
+
+    for (let i = 0; i < discountList.length; i++) {
+      if (discountList[i].discountId === discountId) {
+        discount = discountList[i];
+        break;
+      }
+    }
+
+    openDiscountModal(discount);
+  });
+
+  $("#discountsBody").on("click", "[data-delete-discount]", function () {
+
+    let discountId = $(this).data("delete-discount");
+
+    if (!confirm("Delete this discount?")) {
+      return;
+    }
+
+    $.ajax({
+      url: "http://localhost:8080/v1/discount/" + discountId,
+      type: "DELETE",
+      headers: authHeaders(),
+
+      success: function () {
+        toast("Discount deleted", "success");
+        loadDiscounts();
+      },
+
+      error: function (response) {
+        console.error("Failed to delete discount:", response);
+        alert("Could not delete the discount. Please try again.");
+      }
+    });
+  });
+
+  $("#discountForm").submit(function (event) {
+
+    event.preventDefault();
+
+    let id = $("#discountId").val();
+    let code = $("#discountCode").val().trim();
+    let percentage = parseFloat($("#discountPercentage").val());
+
+    if (code === "" || isNaN(percentage)) {
+      alert("Please enter a valid name and percentage.");
+      return;
+    }
+
+    let itemIds = [];
+    $("#discountItemsList input[type='checkbox']:checked").each(function () {
+      itemIds.push(Number($(this).val()));
+    });
+
+    let obj = {
+      "code": code,
+      "percentage": percentage,
+      "active": $("#discountActive").is(":checked"),
+      "discountDate": $("#discountDate").val() || null,
+      "applicableItemIds": itemIds
+    };
+
+    if (id !== "") {
+      obj.discountId = Number(id);
+    }
+
+    $.ajax({
+      url: "http://localhost:8080/v1/discount",
+      type: id !== "" ? "PUT" : "POST",
+      contentType: "application/json",
+      headers: authHeaders(),
+      data: JSON.stringify(obj),
+
+      success: function () {
+        toast(id !== "" ? "Discount updated" : "Discount added", "success");
+        closeModal("discountModal");
+        loadDiscounts();
+      },
+
+      error: function (response) {
+        console.error("Failed to save discount:", response);
+        alert("Could not save the discount. Please try again.");
+      }
+    });
   });
 
   $("[data-close]").click(function () {

@@ -28,6 +28,16 @@ public class DiscountController {
         return new CommonResponse(0, allDiscounts, "Discounts called");
     }
 
+    @PutMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse updateDiscount(@RequestBody DiscountDTO discountDTO) {
+
+        log.info("updateDiscount API was called");
+        DiscountDTO updatedDiscount = discountService.updateDiscount(discountDTO);
+
+        log.info("updateDiscount API successful");
+        return new CommonResponse(0, updatedDiscount, "Discount updated successfully");
+    }
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse addDiscount(@RequestBody DiscountDTO discountDTO) {
 

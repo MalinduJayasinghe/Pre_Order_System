@@ -8,6 +8,7 @@ public interface DiscountService {
 
     List<DiscountDTO> getAllDiscounts();
     DiscountDTO saveDiscount(DiscountDTO discountDTO);
+    DiscountDTO updateDiscount(DiscountDTO discountDTO);
     void deleteDiscount(Long discountId);
     DiscountDTO validateDiscountCode(String code);
 }
