@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Menu — The Pass</title>
+  <title>Menu — Hell's Kitchen</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
   <style>
     :root {
@@ -70,8 +70,7 @@
 
     .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
     .food-card { padding: 0 0 16px; overflow: hidden; }
-    .food-card-media { height: 140px; display: flex; align-items: center; justify-content: center; background: var(--paper-dim); border-bottom: 1px solid #E4D8B8; overflow: hidden; }
-    .food-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .food-card-media { position: relative; height: 140px; display: flex; align-items: center; justify-content: center; background: var(--paper-dim); border-bottom: 1px solid #E4D8B8; overflow: hidden; }    .food-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .food-card-media .no-image { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-soft); text-align: center; }
     .food-card-body { padding: 14px 16px 0; }
     .food-card-name { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
@@ -107,6 +106,24 @@
     .empty-state .lead { font-family: var(--font-display); font-size: 20px; color: var(--ink); margin-bottom: 4px; }
     .loading-row { text-align: center; padding: 30px; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
 
+    .fav-star { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(20,16,13,.55); color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; z-index: 2; }
+    .fav-star.active { background: var(--amber); color: var(--amber-ink); }
+    .review-link { background: none; border: none; padding: 0; margin-top: 6px; font-size: 11.5px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: inherit; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(10,8,5,.65); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 300; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding: 26px 26px 24px; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .modal-title { font-family: var(--font-display); font-size: 22px; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink-soft); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+    .review-item { padding: 10px 0; border-bottom: 1px solid #E4D8B8; }
+    .review-item:last-child { border-bottom: none; }
+    .review-item-head { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; }
+    .review-item-stars { font-size: 12px; color: var(--amber-dark); }
+    .review-item-comment { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
@@ -123,12 +140,13 @@
 <div class="app">
 
   <aside class="sidebar">
-    <div class="brand"><span class="brand-mark">THE PASS</span></div>
+    <div class="brand"><span class="brand-mark">HELL'S KITCHEN</span></div>
 
     <div class="nav-group-label">Customer</div>
     <button class="nav-link active" data-tab="menu"><span class="ico">01</span> Menu</button>
     <button class="nav-link" data-tab="cart"><span class="ico">02</span> Cart &amp; Checkout <span class="cart-count" id="cartBadge">0</span></button>
     <button class="nav-link" data-tab="orders"><span class="ico">03</span> My Orders</button>
+    <button class="nav-link" data-tab="favorites"><span class="ico">04</span> Favorites</button>
 
     <div class="sidebar-foot">
       <div class="user-chip">
@@ -196,7 +214,45 @@
       <div id="myOrdersList"><div class="loading-row">Loading…</div></div>
     </section>
 
+    <section class="tab-panel" id="tab-favorites">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Favorites</div>
+          <div class="page-sub">Menu items you've starred for quick reordering.</div>
+        </div>
+      </div>
+      <div class="menu-grid" id="favoritesGrid"><div class="loading-row">Loading…</div></div>
+    </section>
+
   </main>
+</div>
+
+<div class="modal-overlay" id="reviewModal">
+  <div class="ticket modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="reviewModalTitle">Reviews</span>
+      <button class="modal-close" data-close="reviewModal">✕</button>
+    </div>
+    <div id="reviewList"><div class="loading-row">Loading…</div></div>
+    <form id="reviewForm" style="margin-top:18px; border-top:1px solid #E4D8B8; padding-top:16px;">
+      <input type="hidden" id="reviewItemId" />
+      <div class="field">
+        <label for="reviewRating">Your rating</label>
+        <select id="reviewRating" required>
+          <option value="5">★★★★★ (5)</option>
+          <option value="4">★★★★☆ (4)</option>
+          <option value="3">★★★☆☆ (3)</option>
+          <option value="2">★★☆☆☆ (2)</option>
+          <option value="1">★☆☆☆☆ (1)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="reviewComment">Comment</label>
+        <textarea id="reviewComment" placeholder="What did you think?" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Submit Review</button>
+    </form>
+  </div>
 </div>
 
 <div id="toastStack"></div>
@@ -213,12 +269,27 @@
       btn.classList.add("active");
       document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
       if (btn.dataset.tab === "orders") loadMyOrders();
+      if (btn.dataset.tab === "favorites") renderFavorites();
     });
+  });
+
+  function openModal(id) {
+    document.getElementById(id).classList.add("open");
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove("open");
+  }
+  document.querySelectorAll("[data-close]").forEach(btn => {
+    btn.addEventListener("click", () => closeModal(btn.dataset.close));
+  });
+  document.querySelectorAll(".modal-overlay").forEach(overlay => {
+    overlay.addEventListener("click", e => { if (e.target === overlay) overlay.classList.remove("open"); });
   });
 
   let menuItems = [];
   let activeCategory = "ALL";
-  const cart = new Map(); // itemId -> { item, qty }
+  let favoriteIds = new Set();
+  const cart = new Map();
 
   function loadMenu() {
     fetch(API_BASE_URL + "/v1/menu", { headers: authHeaders() })
@@ -233,6 +304,71 @@
               toast("Could not load the menu", error);
             });
   }
+
+  function loadFavorites() {
+    fetch(API_BASE_URL + "/v1/favorite/user/" + sessionUser.userId, { headers: authHeaders() })
+            .then(response => response.json())
+            .then(response => {
+              const favorites = response.body || [];
+              favoriteIds = new Set(favorites.map(f => f.itemId));
+              renderMenu();
+              renderFavorites();
+            })
+            .catch(error => console.error("Failed to load favorites:", error));
+  }
+
+  function toggleFavorite(itemId) {
+    const isFavorite = favoriteIds.has(itemId);
+    fetch(API_BASE_URL + "/v1/favorite/user/" + sessionUser.userId + "/item/" + itemId, {
+      method: isFavorite ? "DELETE" : "POST",
+      headers: authHeaders()
+    })
+            .then(response => response.json())
+            .then(() => {
+              if (isFavorite) favoriteIds.delete(itemId); else favoriteIds.add(itemId);
+              renderMenu();
+              renderFavorites();
+            })
+            .catch(error => {
+              console.error("Failed to update favorite:", error);
+              toast("Could not update favorites", "error");
+            });
+  }
+
+  function renderFavorites() {
+    const grid = document.getElementById("favoritesGrid");
+    const list = menuItems.filter(i => favoriteIds.has(i.itemId));
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">No favorites yet</div><p>Tap the star on any menu item to save it here.</p></div>';
+      return;
+    }
+    grid.innerHTML = list.map(item => {
+      const media = item.imageFileName
+              ? `<img src="${esc(API_BASE_URL + "/images/" + item.imageFileName)}" alt="${esc(item.name)}" />`
+              : `<span class="no-image">No photo yet</span>`;
+      return `
+        <div class="ticket food-card">
+          <div class="food-card-media">
+            ${media}
+            <button class="fav-star active" data-fav-toggle="${item.itemId}" title="Remove from favorites">★</button>
+          </div>
+          <div class="food-card-body">
+            <div class="food-card-name">${esc(item.name)}</div>
+            <button class="review-link" data-open-reviews="${item.itemId}">View reviews</button>
+          </div>
+          <div class="food-card-foot">
+            <span class="food-card-price">${money(item.price)}</span>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  document.getElementById("favoritesGrid").addEventListener("click", e => {
+    const favId = e.target.closest("[data-fav-toggle]")?.dataset.favToggle;
+    const reviewId = e.target.closest("[data-open-reviews]")?.dataset.openReviews;
+    if (favId) toggleFavorite(Number(favId));
+    if (reviewId) openReviewModal(Number(reviewId));
+  });
 
   function buildCategoryTabs() {
     const categories = ["ALL", ...new Set(menuItems.map(i => i.category))];
@@ -258,12 +394,17 @@
       const media = item.imageFileName
               ? `<img src="${esc(API_BASE_URL + "/images/" + item.imageFileName)}" alt="${esc(item.name)}" />`
               : `<span class="no-image">No photo yet</span>`;
+      const isFavorite = favoriteIds.has(item.itemId);
       return `
         <div class="ticket food-card">
-          <div class="food-card-media">${media}</div>
+          <div class="food-card-media">
+            ${media}
+            <button class="fav-star ${isFavorite ? "active" : ""}" data-fav-toggle="${item.itemId}" title="${isFavorite ? "Remove from favorites" : "Add to favorites"}">${isFavorite ? "★" : "☆"}</button>
+          </div>
           <div class="food-card-body">
             <div class="food-card-name">${esc(item.name)}</div>
             <div class="food-card-desc">${esc(item.description || "")}</div>
+            <button class="review-link" data-open-reviews="${item.itemId}">View reviews</button>
           </div>
           <div class="food-card-foot">
             <span class="food-card-price">${money(item.price)}</span>
@@ -280,8 +421,12 @@
   document.getElementById("menuGrid").addEventListener("click", e => {
     const incrId = e.target.closest("[data-incr]")?.dataset.incr;
     const decrId = e.target.closest("[data-decr]")?.dataset.decr;
+    const favId = e.target.closest("[data-fav-toggle]")?.dataset.favToggle;
+    const reviewId = e.target.closest("[data-open-reviews]")?.dataset.openReviews;
     if (incrId) addToCart(Number(incrId));
     if (decrId) removeFromCart(Number(decrId));
+    if (favId) toggleFavorite(Number(favId));
+    if (reviewId) openReviewModal(Number(reviewId));
   });
 
   function addToCart(itemId) {
@@ -353,12 +498,18 @@
       pickupTime: document.getElementById("pickupTime").value,
       notes: document.getElementById("orderNotes").value.trim()
     };
+
     fetch(API_BASE_URL + "/v1/order", {
       method: "POST",
       headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
       body: JSON.stringify(payload)
     })
-            .then(response => response.json())
+            .then(response => {
+              if (!response.ok) {
+                throw new Error("Server responded with " + response.status);
+              }
+              return response.json();
+            })
             .then(response => {
               const order = response.body;
               toast(`Order ${orderCode(order.orderId)} sent to the kitchen`, "success");
@@ -369,7 +520,7 @@
             })
             .catch(error => {
               console.error("Failed to place order:", error);
-              toast("Could not place the order", "error");
+              toast("Could not place the order. Please try again.", "error");
             });
   });
 
@@ -400,6 +551,80 @@
             });
   }
 
+  let currentReviewItemId = null;
+
+  function openReviewModal(itemId) {
+    currentReviewItemId = itemId;
+    const item = menuItems.find(i => i.itemId === itemId);
+    document.getElementById("reviewModalTitle").textContent = item ? "Reviews — " + item.name : "Reviews";
+    document.getElementById("reviewItemId").value = itemId;
+    document.getElementById("reviewComment").value = "";
+    loadReviewsForItem(itemId);
+    openModal("reviewModal");
+  }
+
+  function loadReviewsForItem(itemId) {
+    const listEl = document.getElementById("reviewList");
+    listEl.innerHTML = '<div class="loading-row">Loading…</div>';
+    fetch(API_BASE_URL + "/v1/review/item/" + itemId, { headers: authHeaders() })
+            .then(response => response.json())
+            .then(response => {
+              const reviews = response.body || [];
+              if (!reviews.length) {
+                listEl.innerHTML = '<div class="empty-state"><div class="glyph">--</div><div class="lead">No reviews yet</div><p>Be the first to leave one.</p></div>';
+                return;
+              }
+              listEl.innerHTML = reviews.map(r => `
+                <div class="review-item">
+                  <div class="review-item-head">
+                    <span>${esc(r.username || "Anonymous")}</span>
+                    <span class="review-item-stars">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
+                  </div>
+                  ${r.comment ? `<div class="review-item-comment">${esc(r.comment)}</div>` : ""}
+                </div>`).join("");
+            })
+            .catch(error => console.error("Failed to load reviews:", error));
+  }
+
+  document.getElementById("reviewForm").addEventListener("submit", e => {
+    e.preventDefault();
+
+    const comment = document.getElementById("reviewComment").value.trim();
+
+    if (comment === "") {
+      toast("Please write a comment before submitting", "error");
+      return;
+    }
+
+    const payload = {
+      itemId: currentReviewItemId,
+      userId: sessionUser.userId,
+      rating: Number(document.getElementById("reviewRating").value),
+      comment: comment
+    };
+
+    fetch(API_BASE_URL + "/v1/review", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+      body: JSON.stringify(payload)
+    })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error("Server responded with " + response.status);
+              }
+              return response.json();
+            })
+            .then(() => {
+              toast("Review submitted", "success");
+              document.getElementById("reviewComment").value = "";
+              loadReviewsForItem(currentReviewItemId);
+            })
+            .catch(error => {
+              console.error("Failed to submit review:", error);
+              toast("Could not submit your review", "error");
+            });
+  });
+
   document.getElementById("logoutBtn").addEventListener("click", () => {
 
     let refreshToken = localStorage.getItem("refreshToken");
@@ -421,6 +646,7 @@
   });
 
   loadMenu();
+  loadFavorites();
 </script>
 </body>
 </html>

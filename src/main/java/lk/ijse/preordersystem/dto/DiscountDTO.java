@@ -12,7 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class DiscountDTO {
 
-    private long discountId;
+    private Long discountId;
     private String code;
     private double percentage;
     private boolean active;

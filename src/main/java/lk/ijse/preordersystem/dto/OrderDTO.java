@@ -12,13 +12,13 @@ import java.util.List;
 @NoArgsConstructor
 public class OrderDTO {
 
-    private long orderId;
-    private long customerId;
+    private Long orderId;
+    private Long customerId;
     private String customerName;
     private List<OrderItemDTO> items;
     private String pickupTime;
     private String notes;
-    private double total;
+    private Double total;
     private String status;
     private LocalDateTime placedAt;
     private String discountCode;

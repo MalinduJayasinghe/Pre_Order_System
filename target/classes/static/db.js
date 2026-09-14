@@ -80,8 +80,6 @@ function refreshAccessTokenIfNeeded() {
         .catch(error => console.error("Silent token refresh failed:", error));
 }
 
-// Redirects to the login page if there's no session, and optionally enforces
-// the page's expected role. Also fills in the sidebar user-chip.
 function initSession(expectedRole) {
 
     if (!sessionUser.userId || !localStorage.getItem("JWT")) {
@@ -112,10 +110,9 @@ function initSession(expectedRole) {
 
     refreshAccessTokenIfNeeded();
     initChatWidget();
+    initNotificationBell();
 }
 
-// A floating AI assistant available on every page. Injected here once so
-// Admin/Cashier/Customer all get it for free just by calling initSessionChrome().
 function initChatWidget() {
 
     if (document.getElementById("aiChatToggle")) {
@@ -228,4 +225,121 @@ function initChatWidget() {
             sendChatMessage();
         }
     });
+}
+
+function initNotificationBell() {
+
+    if (document.getElementById("notifBellToggle")) {
+        return;
+    }
+
+    let style = document.createElement("style");
+    style.textContent = `
+    #notifBellToggle {
+      position: fixed; bottom: 24px; right: 90px; width: 56px; height: 56px;
+      border-radius: 50%; background: #1C2E36; color: #fff; border: none;
+      font-size: 20px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      z-index: 9999;
+    }
+    #notifBellBadge {
+      position: absolute; top: -2px; right: -2px; background: #B23A34; color: #fff;
+      border-radius: 10px; font-size: 11px; font-family: monospace; padding: 1px 6px;
+      display: none;
+    }
+    #notifBellPanel {
+      position: fixed; bottom: 90px; right: 90px; width: 320px; max-width: calc(100vw - 32px);
+      max-height: 420px; background: #fff; border: 1px solid #DCE6EA; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: none; flex-direction: column;
+      overflow: hidden; z-index: 9999; font-family: inherit;
+    }
+    #notifBellPanel.open { display: flex; }
+    #notifBellHeader {
+      background: #1C2E36; color: #fff; padding: 12px 14px; font-weight: 600; font-size: 14px;
+    }
+    #notifBellList { flex: 1; overflow-y: auto; background: #FAFAF8; }
+    .notif-item { padding: 10px 14px; border-bottom: 1px solid #EFEFE9; font-size: 13px; color: #1C2E36; cursor: pointer; }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item.unread { background: #FBEBCE; font-weight: 600; }
+    .notif-item .notif-time { display: block; font-size: 11px; color: #6B5F4B; font-weight: 400; margin-top: 3px; }
+    .notif-empty { padding: 20px 14px; text-align: center; color: #6B5F4B; font-size: 13px; }
+  `;
+    document.head.appendChild(style);
+
+    let toggle = document.createElement("button");
+    toggle.id = "notifBellToggle";
+    toggle.title = "Notifications";
+    toggle.innerHTML = "🔔<span id=\"notifBellBadge\">0</span>";
+
+    let panel = document.createElement("div");
+    panel.id = "notifBellPanel";
+    panel.innerHTML = `
+    <div id="notifBellHeader">Notifications</div>
+    <div id="notifBellList"><div class="notif-empty">Loading…</div></div>
+  `;
+
+    document.body.appendChild(toggle);
+    document.body.appendChild(panel);
+
+    let listEl = document.getElementById("notifBellList");
+    let badgeEl = document.getElementById("notifBellBadge");
+
+    function renderNotifications(notifications) {
+
+        if (!notifications || notifications.length === 0) {
+            listEl.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+            badgeEl.style.display = "none";
+            return;
+        }
+
+        let unreadCount = notifications.filter(n => !n.read).length;
+        badgeEl.textContent = unreadCount;
+        badgeEl.style.display = unreadCount > 0 ? "inline-block" : "none";
+
+        listEl.innerHTML = notifications.map(n => `
+      <div class="notif-item ${n.read ? "" : "unread"}" data-notif-id="${n.notificationId}">
+        ${esc(n.message)}
+        <span class="notif-time">${fmtDate(n.createdAt)}</span>
+      </div>
+    `).join("");
+    }
+
+    function loadNotifications() {
+
+        fetch(API_BASE_URL + "/v1/notification/user/" + sessionUser.userId, { headers: authHeaders() })
+            .then(response => response.json())
+            .then(response => renderNotifications(response.body || []))
+            .catch(error => console.error("Failed to load notifications:", error));
+    }
+
+    listEl.addEventListener("click", function (event) {
+
+        let item = event.target.closest("[data-notif-id]");
+        if (!item || !item.classList.contains("unread")) {
+            return;
+        }
+
+        let notificationId = item.dataset.notifId;
+
+        fetch(API_BASE_URL + "/v1/notification/" + notificationId + "/read", {
+            method: "PATCH",
+            headers: authHeaders()
+        })
+            .then(() => {
+                item.classList.remove("unread");
+                let unreadCount = listEl.querySelectorAll(".notif-item.unread").length;
+                badgeEl.textContent = unreadCount;
+                badgeEl.style.display = unreadCount > 0 ? "inline-block" : "none";
+            })
+            .catch(error => console.error("Failed to mark notification read:", error));
+    });
+
+    toggle.addEventListener("click", function () {
+        panel.classList.toggle("open");
+        if (panel.classList.contains("open")) {
+            loadNotifications();
+        }
+    });
+
+    loadNotifications();
+    setInterval(loadNotifications, 30000);
 }

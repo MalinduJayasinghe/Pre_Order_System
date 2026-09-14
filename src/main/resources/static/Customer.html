@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Menu — The Pass</title>
+  <title>Menu — Hell's Kitchen</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
   <style>
     :root {
@@ -140,7 +140,7 @@
 <div class="app">
 
   <aside class="sidebar">
-    <div class="brand"><span class="brand-mark">THE PASS</span></div>
+    <div class="brand"><span class="brand-mark">HELL'S KITCHEN</span></div>
 
     <div class="nav-group-label">Customer</div>
     <button class="nav-link active" data-tab="menu"><span class="ico">01</span> Menu</button>
@@ -248,7 +248,7 @@
       </div>
       <div class="field">
         <label for="reviewComment">Comment</label>
-        <textarea id="reviewComment" placeholder="What did you think?"></textarea>
+        <textarea id="reviewComment" placeholder="What did you think?" required></textarea>
       </div>
       <button type="submit" class="btn btn-primary btn-block">Submit Review</button>
     </form>
@@ -498,12 +498,18 @@
       pickupTime: document.getElementById("pickupTime").value,
       notes: document.getElementById("orderNotes").value.trim()
     };
+
     fetch(API_BASE_URL + "/v1/order", {
       method: "POST",
       headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
       body: JSON.stringify(payload)
     })
-            .then(response => response.json())
+            .then(response => {
+              if (!response.ok) {
+                throw new Error("Server responded with " + response.status);
+              }
+              return response.json();
+            })
             .then(response => {
               const order = response.body;
               toast(`Order ${orderCode(order.orderId)} sent to the kitchen`, "success");
@@ -514,7 +520,7 @@
             })
             .catch(error => {
               console.error("Failed to place order:", error);
-              toast("Could not place the order", "error");
+              toast("Could not place the order. Please try again.", "error");
             });
   });
 
@@ -583,11 +589,18 @@
   document.getElementById("reviewForm").addEventListener("submit", e => {
     e.preventDefault();
 
+    const comment = document.getElementById("reviewComment").value.trim();
+
+    if (comment === "") {
+      toast("Please write a comment before submitting", "error");
+      return;
+    }
+
     const payload = {
       itemId: currentReviewItemId,
       userId: sessionUser.userId,
       rating: Number(document.getElementById("reviewRating").value),
-      comment: document.getElementById("reviewComment").value.trim()
+      comment: comment
     };
 
     fetch(API_BASE_URL + "/v1/review", {
@@ -595,7 +608,12 @@
       headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
       body: JSON.stringify(payload)
     })
-            .then(response => response.json())
+            .then(response => {
+              if (!response.ok) {
+                throw new Error("Server responded with " + response.status);
+              }
+              return response.json();
+            })
             .then(() => {
               toast("Review submitted", "success");
               document.getElementById("reviewComment").value = "";

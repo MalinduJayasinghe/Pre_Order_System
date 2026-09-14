@@ -32,6 +32,10 @@ public class MenuItemReviewServiceImpl implements MenuItemReviewService {
 
         try {
 
+            if (menuItemReviewDTO.getComment() == null || menuItemReviewDTO.getComment().trim().isEmpty()) {
+                throw new RuntimeException("A comment is required to leave a review");
+            }
+
             MenuItem menuItem = menuItemRepository.findById(menuItemReviewDTO.getItemId())
                     .orElseThrow(() -> new RuntimeException("Menu item not found"));
 

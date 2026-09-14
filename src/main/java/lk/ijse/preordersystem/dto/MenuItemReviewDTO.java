@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class MenuItemReviewDTO {
 
-    private long reviewId;
-    private long itemId;
-    private long userId;
+    private Long reviewId;
+    private Long itemId;
+    private Long userId;
     private String username;
     private int rating;
     private String comment;
