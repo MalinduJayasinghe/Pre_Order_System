@@ -871,12 +871,6 @@
           <input type="number" id="menuPrice" step="0.01" min="0" required />
         </div>
       </div>
-      <div class="field">
-        <label for="menuIngredientInput">Ingredients</label>
-        <input type="text" id="menuIngredientInput" placeholder="Type an ingredient and press Enter" />
-        <div id="menuIngredientTags" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
-        <div class="field-hint">Used later for allergy/preference filtering — add every allergen-relevant ingredient (e.g. peanuts, dairy, gluten, shellfish).</div>
-      </div>
       <div class="checkbox-row">
         <input type="checkbox" id="menuAvailable" checked />
         <label for="menuAvailable" style="margin:0;">Available on menu</label>
@@ -1023,8 +1017,6 @@
   initSession("ADMIN");
 
   let menuItemList = [];
-  let currentIngredients = [];
-
   let categoryList = [];
 
   function loadCategories() {
@@ -1124,7 +1116,6 @@
       html += "<thead>" +
               "<tr>" +
               "<th>Item</th>" +
-              "<th>Ingredients</th>" +
               "<th>Price</th>" +
               "<th>Status</th>" +
               "<th></th>" +
@@ -1140,12 +1131,10 @@
 
           let item = categoryItems[k];
           let imageSrc = item.imageFileName ? "http://localhost:8080/images/" + item.imageFileName : "https://placehold.co/80x80?text=%20";
-          let ingredientsText = (item.ingredients && item.ingredients.length) ? esc(item.ingredients.join(", ")) : "—";
           let statusBadge = item.available ? "<span class='stamp stamp-ready'>Available</span>" : "<span class='stamp stamp-cancelled'>Not Available</span>";
 
           html += "<tr>";
           html += "<td><img class='thumb' src='" + imageSrc + "' alt='' /><strong>" + esc(item.name) + "</strong></td>";
-          html += "<td class='cell-muted'>" + ingredientsText + "</td>";
           html += "<td class='cell-mono'>" + money(item.price) + "</td>";
           html += "<td>" + statusBadge + "</td>";
           html += "<td class='cell-actions'>";
@@ -1157,20 +1146,6 @@
       }
 
       html += "</tbody></table></div></div>";
-    }
-
-    wrap.html(html);
-  }
-
-  function renderIngredientTags() {
-
-    let wrap = $("#menuIngredientTags");
-    let html = "";
-
-    for (let i = 0; i < currentIngredients.length; i++) {
-      html += "<span class='stamp stamp-pending' style='cursor:pointer;' data-remove-ingredient='" + i + "'>";
-      html += esc(currentIngredients[i]) + " ✕";
-      html += "</span>";
     }
 
     wrap.html(html);
@@ -1191,9 +1166,6 @@
     } else {
       $("#menuImagePreview").hide().attr("src", "");
     }
-
-    currentIngredients = (item && item.ingredients) ? item.ingredients.slice() : [];
-    renderIngredientTags();
 
     openModal("menuModal");
   }
@@ -1303,7 +1275,6 @@
       "category": $("#menuCategory").val(),
       "price": price,
       "available": $("#menuAvailable").is(":checked"),
-      "ingredients": currentIngredients
     };
 
     let file = $("#menuImageFile")[0].files[0];
@@ -1364,46 +1335,6 @@
           alert("Could not save the menu item. Please try again.");
         }
       });
-    }
-  });
-
-
-  $("#menuIngredientTags").on("click", "[data-remove-ingredient]", function () {
-    let index = $(this).data("remove-ingredient");
-    currentIngredients.splice(index, 1);
-    renderIngredientTags();
-  });
-
-  function addIngredientEntries(rawValue) {
-
-    let parts = rawValue.split(",");
-
-    for (let i = 0; i < parts.length; i++) {
-
-      let val = parts[i].trim().toLowerCase();
-
-      if (val !== "" && currentIngredients.indexOf(val) === -1) {
-        currentIngredients.push(val);
-      }
-    }
-
-    renderIngredientTags();
-  }
-
-  $("#menuIngredientInput").keydown(function (event) {
-
-    if (event.key === "Enter" || event.keyCode === 13) {
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      let rawValue = $(this).val();
-
-      if (rawValue.trim() !== "") {
-        addIngredientEntries(rawValue);
-      }
-
-      $(this).val("");
     }
   });
 

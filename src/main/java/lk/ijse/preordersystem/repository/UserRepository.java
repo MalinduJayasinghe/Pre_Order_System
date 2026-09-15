@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findByUserName(String username);
+    List<User> findByRole_RoleName(String roleName);
 
     @Query(value = "SELECT new lk.ijse.preordersystem.dto.UserDTO(u.userId, u.userName, u.role.roleName, u.contact, u.email, u.enabled) FROM User u")
     List<UserDTO> getAllUsers();

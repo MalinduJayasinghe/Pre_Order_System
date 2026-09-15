@@ -183,7 +183,7 @@ public class AiChatbotServiceImpl implements AiChatbotService {
     private String buildSystemPrompt(String role) {
 
         return "You are the AI assistant for a restaurant pre-order and point-of-sale system. "
-                + "You ONLY help with this business: the menu (dishes, categories, ingredients, prices), "
+                + "You ONLY help with this business: the menu (dishes, categories, prices), "
                 + "placing or checking pre-orders, and - only where your tools allow it - the order queue, "
                 + "sales reports, and staff accounts. "
                 + "If asked about anything outside this business (general knowledge, other topics, coding help, "
@@ -202,7 +202,7 @@ public class AiChatbotServiceImpl implements AiChatbotService {
         searchProperties.put("categoryName", schemaString("The dish category to filter by, e.g. Main Dish, Dessert, Beverage."));
         searchProperties.put("minPrice", schemaNumber("Minimum price."));
         searchProperties.put("maxPrice", schemaNumber("Maximum price."));
-        tools.add(functionTool("searchMenuItems", "Search the restaurant menu by category, price range, and ingredients to include or exclude.", searchProperties, List.of()));
+        tools.add(functionTool("searchMenuItems", "Search the restaurant menu by category and price range to include or exclude.", searchProperties, List.of()));
 
         Map<String, Object> orderStatusProperties = new LinkedHashMap<>();
         orderStatusProperties.put("orderId", schemaNumber("The order ID to look up."));

@@ -8,6 +8,7 @@ import lk.ijse.preordersystem.repository.MenuItemRepository;
 import lk.ijse.preordersystem.repository.MenuItemReviewRepository;
 import lk.ijse.preordersystem.repository.UserRepository;
 import lk.ijse.preordersystem.service.MenuItemReviewService;
+import lk.ijse.preordersystem.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,12 @@ import java.util.List;
 @Slf4j
 public class MenuItemReviewServiceImpl implements MenuItemReviewService {
 
+    private static final int LOW_RATING_THRESHOLD = 2;
+
     private final MenuItemReviewRepository menuItemReviewRepository;
     private final MenuItemRepository menuItemRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public MenuItemReviewDTO addReview(MenuItemReviewDTO menuItemReviewDTO) {
@@ -50,6 +54,10 @@ public class MenuItemReviewServiceImpl implements MenuItemReviewService {
             review.setReviewedAt(LocalDateTime.now());
 
             MenuItemReview savedReview = menuItemReviewRepository.save(review);
+
+            if (savedReview.getRating() <= LOW_RATING_THRESHOLD) {
+                notifyAdminsOfLowRating(savedReview);
+            }
 
             log.info("Review saved successfully");
             return mapToDto(savedReview);
@@ -80,6 +88,19 @@ public class MenuItemReviewServiceImpl implements MenuItemReviewService {
         }catch (Exception e){
             log.error("Error in method getReviewsForItem" + e.getMessage());
             throw e;
+        }
+    }
+
+    private void notifyAdminsOfLowRating(MenuItemReview review) {
+
+        List<User> admins = userRepository.findByRole_RoleName("ADMIN");
+
+        String message = "Low rating (" + review.getRating() + "\u2605) on " + review.getMenuItem().getName()
+                + " from " + review.getUser().getUserName()
+                + (review.getComment() != null && !review.getComment().isEmpty() ? ": \"" + review.getComment() + "\"" : "");
+
+        for (User admin : admins) {
+            notificationService.createNotification(admin.getUserId(), message);
         }
     }
 

@@ -107,6 +107,8 @@ public class OrderServiceImpl implements OrderService {
                         "Your order " + orderCode(savedOrder.getOrderId()) + " has been placed and is pending confirmation.");
             }
 
+            notifyCashiersOfNewOrder(savedOrder);
+
             sendOrderReceiptSms(savedOrder);
 
             log.info("Order placed successfully");
@@ -266,6 +268,18 @@ public class OrderServiceImpl implements OrderService {
         receipt.append("Pickup: ").append(order.getPickupTime());
 
         log.info("[SMS SIMULATION] To {}: {}", contact, receipt);
+    }
+
+    private void notifyCashiersOfNewOrder(Order order) {
+
+        List<User> cashiers = userRepository.findByRole_RoleName("CASHIER");
+
+        String message = "New order " + orderCode(order.getOrderId()) + " from " + order.getCustomerName()
+                + " (Rs. " + String.format("%.2f", order.getTotal()) + ").";
+
+        for (User cashier : cashiers) {
+            notificationService.createNotification(cashier.getUserId(), message);
+        }
     }
 
     private void recordStatusHistory(Order order, String status, String changedBy) {
