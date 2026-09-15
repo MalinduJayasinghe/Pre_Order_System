@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.ObjectMapper;
 
@@ -32,13 +33,13 @@ public class AiChatbotServiceImpl implements AiChatbotService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    @Value("${openrouter.api.url}")
+    @Value("${groq.api.url}")
     private String apiUrl;
 
-    @Value("${openrouter.api.key}")
+    @Value("${groq.api.key}")
     private String apiKey;
 
-    @Value("${openrouter.api.model}")
+    @Value("${groq.api.model}")
     private String model;
 
     @Override
@@ -107,8 +108,16 @@ public class AiChatbotServiceImpl implements AiChatbotService {
             log.info("Chat completed successfully");
             return new ChatReplyDTO(finalReply, toolUsed);
 
+        }catch (HttpStatusCodeException e){
+            log.error("Error in method chat", e);
+            int status = e.getStatusCode().value();
+            String fallback = (status == 429 || status == 503)
+                    ? "The AI assistant is getting a lot of requests right now. Please try again in a moment."
+                    : "Sorry, I couldn't process that right now. Please try again in a moment.";
+            logInteraction(userId, message, fallback, null);
+            return new ChatReplyDTO(fallback, null);
         }catch (Exception e){
-            log.error("Error in method chat" + e.getMessage());
+            log.error("Error in method chat", e);
             String fallback = "Sorry, I couldn't process that right now. Please try again in a moment.";
             logInteraction(userId, message, fallback, null);
             return new ChatReplyDTO(fallback, null);
@@ -191,8 +200,6 @@ public class AiChatbotServiceImpl implements AiChatbotService {
 
         Map<String, Object> searchProperties = new LinkedHashMap<>();
         searchProperties.put("categoryName", schemaString("The dish category to filter by, e.g. Main Dish, Dessert, Beverage."));
-        searchProperties.put("includeIngredients", schemaStringArray("Only return dishes that contain ALL of these ingredients."));
-        searchProperties.put("excludeIngredients", schemaStringArray("Only return dishes that do NOT contain any of these ingredients."));
         searchProperties.put("minPrice", schemaNumber("Minimum price."));
         searchProperties.put("maxPrice", schemaNumber("Maximum price."));
         tools.add(functionTool("searchMenuItems", "Search the restaurant menu by category, price range, and ingredients to include or exclude.", searchProperties, List.of()));

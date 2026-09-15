@@ -181,7 +181,7 @@ public class AiToolExecutor {
         return results;
     }
 
-    @SuppressWarnings("unchecked")
+
     public Map<String, Object> placeOrderForCustomer(String customerName, List<Map<String, Object>> items,
                                                        String pickupTime, String notes) {
 
